@@ -28,10 +28,16 @@ import {
   Mail,
   Briefcase
 } from 'lucide-react'
-import { getApiStatus, getVaultFiles, saveConfig, generateAgentProposal } from './api'
-import { getGithubWorkflows, pushFileToGithub } from './github'
+import { 
+  getApiStatus, 
+  getVaultFiles, 
+  saveConfig, 
+  sendChatMessage, 
+  generateAgentProposal 
+} from './api'
+import { pushFileToGithub, getGithubWorkflows } from './github'
 
-import { useView } from './context'
+import { ViewProvider, useView, useSettings } from './context'
 
 export default function HomePage() {
   const { activeView } = useView()
@@ -55,28 +61,31 @@ export default function HomePage() {
         setSystemStatus(status)
         setVaultFiles(files)
         setGithubRuns(runs)
-      } catch (e) { console.error(e) }
-      setLoading(false)
+      } catch (e) { 
+        console.error("Error en sincronización de nodo:", e)
+      } finally {
+        setLoading(false)
+      }
     }
     init()
-    const interval = setInterval(init, 15000)
+    const interval = setInterval(init, 30000) // Sincronización más relajada para evitar lag
     return () => clearInterval(interval)
   }, [])
 
-  if (isAuthorized === null) return <div className="h-screen bg-white flex items-center justify-center font-black animate-pulse">BOOTING ARCHITECT BUILD...</div>
+  if (isAuthorized === null) return (
+     <div className="h-screen bg-white flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 border-2 border-zinc-100 border-t-zinc-900 rounded-full animate-spin" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Booting Architect Build...</p>
+     </div>
+  )
   
   if (!isAuthorized) {
     return <LoginShield onAuthorize={() => setIsAuthorized(true)} />
   }
 
-  if (loading) return (
-    <div className="h-full flex flex-col items-center justify-center space-y-4">
-       <div className="w-12 h-12 border-2 border-zinc-100 border-t-zinc-900 rounded-full animate-spin" />
-       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sincronizando Nodo...</p>
-    </div>
-  )
-
-  return activeTabSelector(activeView, systemStatus, githubRuns, vaultFiles)
+  // No bloqueamos con pantalla completa de carga si ya estamos autorizados.
+  // Solo mostramos el selector de pestañas.
+  return <ViewSelector status={systemStatus} githubRuns={githubRuns} vaultFiles={vaultFiles} />
 }
 
 function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
@@ -151,8 +160,10 @@ function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
   )
 }
 
-function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFiles: any[]) {
-  switch (view) {
+function ViewSelector({ status, githubRuns, vaultFiles }: any) {
+  const { activeView, setActiveView } = useView()
+  
+  switch (activeView) {
     case 'dashboard': return <DashboardView status={status} vaultFiles={vaultFiles} />
     case 'builder': return <AgentCreator />
     case 'vault': return <ConfigVault files={vaultFiles} />
@@ -160,7 +171,7 @@ function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFi
     case 'infrastructure': return <InfrastructureView status={status} />
     case 'security': return <SecurityView />
     case 'profile': return <ProfileView vaultFiles={vaultFiles} />
-    case 'settings': return <SettingsModal isOpen={true} onClose={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'dashboard' }))} />
+    case 'settings': return <SettingsModal isOpen={true} onClose={() => setActiveView('dashboard')} />
     default: return <DashboardView status={status} vaultFiles={vaultFiles} />
   }
 }
@@ -356,12 +367,40 @@ function SecretInput({ label, value, help }: any) {
 }
 
 function DashboardView({ status, vaultFiles = [] }: any) {
+  const { setActiveView } = useView()
   const isOnline = status?.status === 'online'
   const agents = vaultFiles.filter((f: any) => f.name.endsWith('.yaml'))
   const agentCount = agents.length
+  const { developerMode } = useSettings()
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
+      {/* Developer Console Overlay */}
+      <AnimatePresence>
+        {developerMode && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed bottom-10 right-10 w-96 bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl z-50 font-mono text-[10px]"
+          >
+             <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
+                <span className="text-blue-400 font-black">LOGS DE SISTEMA (DEV_MODE)</span>
+                <div className="flex gap-1">
+                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                </div>
+             </div>
+             <div className="space-y-2 text-zinc-400">
+                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> API_STATUS: {isOnline ? 'ONLINE' : 'OFFLINE'}</p>
+                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> VAULT_SYNC: {agentCount} AGENTS_LOADED</p>
+                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> SESSION: VALIDATED_ARCHITECT</p>
+                <p className="text-emerald-500 tracking-tighter animate-pulse">{">>>"} ESCUCHANDO EVENTOS DE META_HUB...</p>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Power Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <PowerStat label="Operaciones IA" value={agentCount > 0 ? (agentCount * 124).toString() : "0"} delta={agentCount > 0 ? "Real-time" : "---"} color="blue" icon={<Zap size={20} />} />
@@ -391,7 +430,7 @@ function DashboardView({ status, vaultFiles = [] }: any) {
                 </p>
              </div>
              <button 
-               onClick={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'builder' }))}
+               onClick={() => setActiveView('builder')}
                className="nuclear-button !bg-zinc-900 !px-10 py-5"
              >
                 Iniciar Protocolo de Vida
@@ -443,6 +482,8 @@ function PowerStat({ label, value, delta, color, icon }: any) {
 
 function ProfileView({ vaultFiles = [] }: { vaultFiles?: any[] }) {
   const agentCount = vaultFiles.filter((f: any) => f.name.endsWith('.yaml')).length
+  const { salesNotifications, setSalesNotifications, developerMode, setDeveloperMode, autoCloudSync, setAutoCloudSync } = useSettings()
+  
   const [profile] = useState({
     name: 'Architect Senior',
     role: 'CEO & Lead Architect',
@@ -487,9 +528,24 @@ function ProfileView({ vaultFiles = [] }: { vaultFiles?: any[] }) {
             <div className="glass-card bg-white p-8 space-y-6">
                <h3 className="text-sm font-black uppercase text-zinc-900 tracking-widest">Preferencias de Sistema</h3>
                <div className="space-y-4">
-                  <PreferenceToggle label="Notificaciones de Ventas" desc="Recibir alertas en tiempo real cuando un agente cierre una conversión." active={true} />
-                  <PreferenceToggle label="Modo Desarrollador" desc="Ver logs técnicos y estados de las GitHub Actions en el dashboard." active={false} />
-                  <PreferenceToggle label="Sincronización Cloud Automática" desc="Persistir cambios en GitHub instantáneamente tras cada edición." active={true} />
+                  <PreferenceToggle 
+                    label="Notificaciones de Ventas" 
+                    desc="Recibir alertas en tiempo real cuando un agente cierre una conversión." 
+                    active={salesNotifications} 
+                    onChange={setSalesNotifications}
+                  />
+                  <PreferenceToggle 
+                    label="Modo Desarrollador" 
+                    desc="Ver logs técnicos y estados de las GitHub Actions en el dashboard." 
+                    active={developerMode} 
+                    onChange={setDeveloperMode}
+                  />
+                  <PreferenceToggle 
+                    label="Sincronización Cloud Automática" 
+                    desc="Persistir cambios en GitHub instantáneamente tras cada edición." 
+                    active={autoCloudSync} 
+                    onChange={setAutoCloudSync}
+                  />
                </div>
             </div>
          </div>
@@ -513,14 +569,17 @@ function ProfileView({ vaultFiles = [] }: { vaultFiles?: any[] }) {
   )
 }
 
-function PreferenceToggle({ label, desc, active }: any) {
+function PreferenceToggle({ label, desc, active, onChange }: any) {
   return (
     <div className="flex items-center justify-between py-4 border-b border-zinc-100 last:border-0">
        <div className="space-y-0.5">
           <p className="text-[11px] font-black text-zinc-900 uppercase tracking-tight">{label}</p>
           <p className="text-[10px] text-zinc-400 font-medium">{desc}</p>
        </div>
-       <div className={`w-10 h-6 rounded-full transition-colors cursor-pointer relative ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}>
+       <div 
+         onClick={() => onChange(!active)}
+         className={`w-10 h-6 rounded-full transition-colors cursor-pointer relative ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}
+       >
           <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${active ? 'left-5' : 'left-1'}`} />
        </div>
     </div>
@@ -553,7 +612,9 @@ function MetricSmall({ label, value, color }: any) {
   )
 }
 
-function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+function SettingsModal({ isOpen, onClose }: any) {
+  const { salesNotifications, setSalesNotifications, developerMode, setDeveloperMode, autoCloudSync, setAutoCloudSync } = useSettings()
+
   if (!isOpen) return null
 
   return (
@@ -603,9 +664,24 @@ function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
                    <Activity size={14} className="text-blue-500" /> Funciones Operativas
                 </h3>
                 <div className="space-y-4">
-                   <ToggleRow label="Sincronización en Tiempo Real" description="Actualizar archivos en GitHub instantáneamente al editar." active />
-                   <ToggleRow label="Modo Debug Avanzado" description="Mostrar razonamiento RAW de la IA en el constructor." />
-                   <ToggleRow label="Auto-Escalado de Infraestructura" description="Provisionar nodos según picos de tráfico." active />
+                   <ToggleRow 
+                     label="Notificaciones de Ventas" 
+                     description="Alertas instantáneas sobre conversiones." 
+                     active={salesNotifications} 
+                     onChange={setSalesNotifications}
+                   />
+                   <ToggleRow 
+                     label="Modo Desarrollador" 
+                     description="Acceso a logs técnicos de bajo nivel." 
+                     active={developerMode} 
+                     onChange={setDeveloperMode}
+                   />
+                   <ToggleRow 
+                     label="Sincronización Cloud" 
+                     description="Persistencia automática en GitHub." 
+                     active={autoCloudSync} 
+                     onChange={setAutoCloudSync}
+                   />
                 </div>
              </section>
           </div>
@@ -619,58 +695,73 @@ function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
   )
 }
 
-function ToggleRow({ label, description, active = false }: any) {
+function ToggleRow({ label, description, active = false, onChange }: any) {
   return (
     <div className="flex items-center justify-between py-2">
        <div>
           <h4 className="text-sm font-bold text-zinc-900">{label}</h4>
           <p className="text-[11px] text-zinc-400 font-medium">{description}</p>
        </div>
-       <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors duration-300 ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}>
+       <div 
+         onClick={() => onChange && onChange(!active)}
+         className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors duration-300 ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}
+       >
           <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 ${active ? 'right-1' : 'left-1'}`} />
        </div>
     </div>
   )
 }
 
-function AgentStatusCard({ name, status, type }: { name: string, status: 'running' | 'paused' | 'created', type: string }) {
-  return (
-    <div className="glass-card p-6 flex flex-col gap-6 group">
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform cursor-pointer">
-            <Zap size={18} className="text-white fill-current" />
-          </div>
-          <div className="space-y-0.5">
-            <h3 className="text-sm font-bold text-zinc-900">{name}</h3>
-            <p className="text-[11px] text-zinc-400 font-medium">{type}</p>
-          </div>
-        </div>
-        <div className={`
-          flex items-center gap-2 px-2 py-1 rounded-full border text-[10px] font-black uppercase tracking-tighter
-          ${status === 'running' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-            status === 'paused' ? 'bg-amber-50 border-amber-100 text-amber-600' : 
-            'bg-zinc-50 border-zinc-100 text-zinc-400'}
-        `}>
-          <div className={`w-1.5 h-1.5 rounded-full ${status === 'running' ? 'bg-emerald-500 animate-pulse' : status === 'paused' ? 'bg-amber-500' : 'bg-zinc-300'}`} />
-          {status}
-        </div>
-      </div>
+function AgentStatusCard({ name, status, type }: any) {
+  const [currentStatus, setCurrentStatus] = useState(status)
+  
+  const handleToggle = () => {
+    setCurrentStatus(currentStatus === 'running' ? 'paused' : 'running')
+    console.log(`Estado del agente ${name} cambiado a: ${currentStatus === 'running' ? 'paused' : 'running'}`)
+  }
 
-      <div className="flex gap-2 pt-2">
-        <button className="flex-1 nuclear-button bg-zinc-100 !text-zinc-900 hover:!bg-zinc-200 shadow-none border border-zinc-200">
-          <Activity size={14} /> <span className="text-[11px] tracking-tight">Stats</span>
-        </button>
-        {status === 'running' ? (
-          <button className="flex-1 nuclear-button">
-            <Pause size={14} /> <span className="text-[11px] tracking-tight">Pause</span>
+  return (
+    <div className="glass-card p-6 space-y-6 group hover:border-blue-200 transition-all">
+       <div className="flex justify-between items-start">
+          <div className="space-y-1 flex-1">
+             <div className="flex items-center gap-2">
+                <h3 className="text-xs font-black text-zinc-900 tracking-tight">{name}</h3>
+                <div className={`w-1.5 h-1.5 rounded-full ${currentStatus === 'running' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+             </div>
+             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{type}</p>
+          </div>
+          <div className="flex gap-2">
+             <button 
+               onClick={handleToggle}
+               className="p-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-900"
+             >
+                {currentStatus === 'running' ? <Pause size={14} /> : <Play size={14} />}
+             </button>
+             <button className="p-2 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-900">
+                <Settings size={14} />
+             </button>
+          </div>
+       </div>
+
+       <div className="grid grid-cols-2 gap-4">
+          <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100">
+             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Uptime</p>
+             <p className="text-xs font-black text-zinc-900">{currentStatus === 'running' ? '99.9%' : '0%'}</p>
+          </div>
+          <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100">
+             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Conversaciones</p>
+             <p className="text-xs font-black text-zinc-900">1,240</p>
+          </div>
+       </div>
+
+       <div className="flex gap-3">
+          <button className="flex-1 py-3 bg-zinc-900 text-white rounded-xl text-[10px] font-black uppercase tracking-tight hover:bg-zinc-800 transition-colors">
+             Estadísticas
           </button>
-        ) : (
-          <button className="flex-1 nuclear-button !bg-blue-600 hover:!bg-blue-700">
-            <Play size={14} /> <span className="text-[11px] tracking-tight">Resume</span>
+          <button className="flex-1 py-3 border border-zinc-200 text-zinc-600 rounded-xl text-[10px] font-black uppercase tracking-tight hover:bg-zinc-50 transition-colors">
+             Logs
           </button>
-        )}
-      </div>
+       </div>
     </div>
   )
 }
@@ -706,6 +797,10 @@ function AgentCreator() {
     const filename = `agents/${interview.name.toLowerCase().replace(/\s+/g, '_')}.yaml`
     await pushFileToGithub(filename, proposal.yaml, `Inyectando nuevo Agente Autónomo: ${interview.name}`)
     setShowDossier(true)
+  }
+
+  const handlePrint = () => {
+    window.print()
   }
 
   return (
@@ -936,9 +1031,12 @@ function AgentCreator() {
 
                <div className="flex gap-4">
                   <button onClick={() => window.location.reload()} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Finalizar Protocolo</button>
-                  <button className="nuclear-button flex-1 !bg-zinc-900 flex items-center justify-center gap-3">
-                     <Download size={18} /> Descargar Dossier PDF para el Cliente
-                  </button>
+                   <button 
+                     onClick={handlePrint}
+                     className="nuclear-button flex-1 !bg-zinc-900 flex items-center justify-center gap-3"
+                   >
+                      <Download size={18} /> Descargar Dossier PDF para el Cliente
+                   </button>
                </div>
             </div>
           )}

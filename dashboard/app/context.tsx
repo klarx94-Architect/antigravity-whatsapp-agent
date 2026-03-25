@@ -4,17 +4,51 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 
 type ViewType = 'dashboard' | 'builder' | 'vault' | 'deployments' | 'infrastructure' | 'security' | 'settings' | 'profile'
 
+interface SettingsContextType {
+  salesNotifications: boolean
+  setSalesNotifications: (v: boolean) => void
+  developerMode: boolean
+  setDeveloperMode: (v: boolean) => void
+  autoCloudSync: boolean
+  setAutoCloudSync: (v: boolean) => void
+}
+
 interface ViewContextType {
   activeView: ViewType
   setActiveView: (view: ViewType) => void
 }
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined)
+const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
 
 export function ViewProvider({ children }: { children: React.ReactNode }) {
   const [activeView, setActiveView] = useState<ViewType>('dashboard')
+  
+  // Settings State
+  const [salesNotifications, setSalesNotifications] = useState(true)
+  const [developerMode, setDeveloperMode] = useState(false)
+  const [autoCloudSync, setAutoCloudSync] = useState(true)
 
-  // Listener para cambios externos (ej: desde modales o eventos globales)
+  // Cargar preferencias
+  useEffect(() => {
+    const saved = localStorage.getItem('ARCHITECT_SETTINGS')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setSalesNotifications(parsed.salesNotifications ?? true)
+        setDeveloperMode(parsed.developerMode ?? false)
+        setAutoCloudSync(parsed.autoCloudSync ?? true)
+      } catch (e) {}
+    }
+  }, [])
+
+  // Guardar preferencias
+  useEffect(() => {
+    localStorage.setItem('ARCHITECT_SETTINGS', JSON.stringify({
+      salesNotifications, developerMode, autoCloudSync
+    }))
+  }, [salesNotifications, developerMode, autoCloudSync])
+
   useEffect(() => {
     const handleViewChange = (e: any) => {
       if (e.detail) setActiveView(e.detail as ViewType)
@@ -25,15 +59,25 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ViewContext.Provider value={{ activeView, setActiveView }}>
-      {children}
+      <SettingsContext.Provider value={{ 
+        salesNotifications, setSalesNotifications,
+        developerMode, setDeveloperMode,
+        autoCloudSync, setAutoCloudSync
+      }}>
+        {children}
+      </SettingsContext.Provider>
     </ViewContext.Provider>
   )
 }
 
 export function useView() {
   const context = useContext(ViewContext)
-  if (context === undefined) {
-    throw new Error('useView must be used within a ViewProvider')
-  }
+  if (context === undefined) throw new Error('useView must be used within a ViewProvider')
+  return context
+}
+
+export function useSettings() {
+  const context = useContext(SettingsContext)
+  if (context === undefined) throw new Error('useSettings must be used within a ViewProvider')
   return context
 }
