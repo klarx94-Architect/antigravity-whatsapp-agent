@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+google-generativeai
+pyyaml
+python-dotenv
+sqlite3
