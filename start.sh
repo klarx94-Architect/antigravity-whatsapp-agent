@@ -1,79 +1,53 @@
 #!/bin/bash
-# ⚡ Antigravity WhatsApp Agent — Script de inicio
-# Ejecutar: bash start.sh
 
-set -e
+# --- Antigravity Unified Starter ---
+# Lanza el Dashboard (Next.js) y el Agente (FastAPI) simultáneamente.
 
-echo ""
-echo "==========================================================="
-echo "   ⚡ Antigravity WhatsApp Agent — Setup"
-echo "==========================================================="
-echo ""
-echo "  Preparando tu entorno de agente IA con Gemini..."
-echo ""
+echo "🚀 Iniciando Ecosistema Antigravity WhatsApp Agent..."
 
-# ── Verificar Python ──────────────────────────────────────────
-echo "  [1/4] Verificando Python..."
-if ! command -v python3 &> /dev/null; then
-    echo ""
-    echo "  ERROR: Python 3 no encontrado."
-    echo "  Descargalo en: https://python.org/downloads"
-    echo ""
-    exit 1
-fi
-
-PYTHON_MAJOR=$(python3 -c 'import sys; print(sys.version_info.major)')
-PYTHON_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)')
-if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" -lt 11 ]); then
-    echo ""
-    echo "  ERROR: Necesitas Python 3.11 o superior."
-    echo "  Version actual: $(python3 --version)"
-    echo ""
-    exit 1
-fi
-echo "  OK — $(python3 --version)"
-
-# ── Verificar/crear entorno virtual ──────────────────────────
-echo "  [2/4] Configurando entorno virtual..."
+# 1. Verificar Entorno Python
+echo "📦 Verificando dependencias del Agente..."
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
-    echo "  OK — venv creado"
-else
-    echo "  OK — venv existente"
-fi
-source venv/bin/activate
-
-# ── Instalar dependencias ──────────────────────────────────────
-echo "  [3/4] Instalando dependencias..."
-if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt -q
-    echo "  OK — google-generativeai y dependencias instaladas"
+    echo "Creating virtual environment..."
+    python -m venv venv
 fi
 
-# ── Crear carpetas base ──────────────────────────────────────
-echo "  [4/4] Preparando carpetas..."
-mkdir -p knowledge agent/providers config tests
-echo "  OK — Estructura lista"
+source venv/Scripts/activate || source venv/bin/activate
+pip install -r agent/requirements.txt --quiet
 
-echo ""
-echo "==========================================================="
-echo ""
-echo "  Todo listo. Pasos siguientes:"
-echo ""
-echo "  1. Copia .env.example a .env:"
-echo "     cp .env.example .env"
-echo ""
-echo "  2. Obtén tu GEMINI_API_KEY GRATIS en:"
-echo "     https://aistudio.google.com/app/apikey"
-echo ""
-echo "  3. Agrega tu clave en .env:"
-echo "     GEMINI_API_KEY=tu_clave_aqui"
-echo ""
-echo "  4. Configura tu proveedor de WhatsApp en .env"
-echo "     (Recomendado: Whapi.cloud — tiene sandbox gratis)"
-echo ""
-echo "  5. Prueba el agente en terminal:"
-echo "     python tests/test_local.py"
-echo ""
-echo "==========================================================="
-echo ""
+# 2. Verificar Entorno Dashboard
+echo "🎨 Verificando dependencias del Dashboard..."
+if [ ! -d "dashboard/node_modules" ]; then
+    echo "Installing node modules..."
+    cd dashboard && npm install --quiet && cd ..
+fi
+
+# 3. Lanzar Servicios
+echo "📡 Lanzando servicios en segundo plano..."
+
+# Backend (Puerto 8000)
+python agent/main.py &
+BACKEND_PID=$!
+
+# Frontend (Puerto 3000)
+cd dashboard && npm run dev &
+FRONTEND_PID=$!
+
+echo "------------------------------------------------"
+echo "✅ TODO LISTO"
+echo "🔗 Dashboard: http://localhost:3000"
+echo "🔗 API Engine: http://localhost:8000/api/status"
+echo "------------------------------------------------"
+echo "Presiona Ctrl+C para detener ambos servicios."
+
+# Manejo de cierre
+cleanup() {
+    echo "🛑 Deteniendo servicios..."
+    kill $BACKEND_PID
+    kill $FRONTEND_PID
+    exit
+}
+
+trap cleanup SIGINT
+
+wait
