@@ -8,33 +8,38 @@ module.exports = {
     extend: {
       colors: {
         primary: '#0F172A',
-        accent: '#3B82F6',
-        'deep-black': '#0A0A0A',
-        'metallic-white': '#F8F9FA',
-        'glass': 'rgba(255, 255, 255, 0.05)',
-        metallic: {
-          50: '#F9FAFB',
-          100: '#F3F4F6',
-          200: '#E5E7EB',
-          300: '#D1D5DB',
+        accent: '#2563EB', // A bit deeper blue
+        'deep-black': '#09090B', // Zinc-950
+        'metallic-white': '#FAFAFA',
+        'glass': 'rgba(255, 255, 255, 0.02)',
+        zinc: {
+          50: '#FAFAFA',
+          100: '#F4F4F5',
+          200: '#E4E4E7',
+          300: '#D4D4D8',
+          400: '#A1A1AA',
+          800: '#27272A',
+          900: '#18181B',
         },
         glow: {
           blue: '#3B82F6',
-          green: '#10B981',
+          green: '#22C55E',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui'],
         display: ['Outfit', 'sans-serif'],
       },
       boxShadow: {
-        'nuclear': '0 20px 60px -15px rgba(0, 0, 0, 0.15)',
-        'premium': '0 10px 30px -5px rgba(0, 0, 0, 0.05)',
-        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        'nuclear': '0 0 0 1px rgba(0,0,0,0.05), 0 20px 50px -12px rgba(0,0,0,0.1)',
+        'premium': '0 0 0 1px rgba(0,0,0,0.02), 0 10px 30px -5px rgba(0,0,0,0.03)',
+        'glass': 'inset 0 0 0 1px rgba(255,255,255,0.4), 0 8px 32px 0 rgba(0,0,0,0.04)',
       },
       borderRadius: {
-        '3xl': '1.5rem',
-        '4xl': '2rem',
+        'xl': '0.75rem',
+        '2xl': '1rem',
+        '3xl': '1.25rem', // Tighter than before
+        '4xl': '1.5rem',
       }
     },
   },

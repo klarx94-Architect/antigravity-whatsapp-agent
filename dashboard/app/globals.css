@@ -10,49 +10,46 @@
 
 @layer base {
   body {
-    @apply bg-[#F8F9FA] text-[#0F172A] antialiased font-sans selection:bg-accent/20;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.03) 0px, transparent 50%);
+    @apply bg-[#FCFCFC] text-[#09090B] antialiased selection:bg-blue-100;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-white/40 backdrop-blur-xl border border-white/40 shadow-glass rounded-[2rem] transition-all duration-700 relative overflow-hidden;
-  }
-  
-  /* Senior Glass Reflection */
-  .glass-card::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 transition-opacity duration-700;
-  }
-
-  .glass-card:hover::before {
-    @apply opacity-100;
+    @apply bg-white border border-zinc-200/60 shadow-premium rounded-2xl transition-all duration-300 relative overflow-hidden;
   }
   
   .glass-card:hover {
-    @apply bg-white/60 border-white/60 shadow-nuclear translate-y-[-8px];
+    @apply border-zinc-300 shadow-nuclear translate-y-[-2px];
   }
   
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100;
+  }
+
+  .sidebar-item-active {
+    @apply bg-zinc-900 text-white hover:bg-zinc-800 shadow-sm;
+  }
+
   .nuclear-button {
-    @apply bg-primary text-white px-8 py-3 rounded-2xl font-bold tracking-wide transition-all duration-500 
-           hover:shadow-nuclear active:scale-95 flex items-center gap-3 overflow-hidden relative;
-  }
-
-  .nuclear-button::after {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] transition-transform duration-1000;
-  }
-
-  .nuclear-button:hover::after {
-    @apply translate-x-[100%];
+    @apply bg-zinc-900 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 
+           hover:bg-zinc-800 active:scale-[0.98] flex items-center gap-2 shadow-sm;
   }
 
   .premium-label {
-    @apply text-[10px] uppercase font-black tracking-[0.4em] text-slate-400;
+    @apply text-[11px] font-semibold text-zinc-400 tracking-tight;
   }
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  @apply w-1.5;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-200 rounded-full hover:bg-zinc-300 transition-colors;
 }
 
 /* Custom Scrollbar */

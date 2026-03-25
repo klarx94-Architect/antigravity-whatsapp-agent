@@ -3,17 +3,20 @@
 import './globals.css'
 import { Inter, Outfit } from 'next/font/google'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
 import { 
   LayoutDashboard, 
   Rocket, 
   Zap, 
-  Sliders, 
-  ChevronRight, 
+  Menu,
+  ChevronLeft,
   Settings, 
   Info,
   Shield,
   Cpu,
-  Layers
+  Layers,
+  Search,
+  Bell
 } from 'lucide-react'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -24,103 +27,128 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
   return (
     <html lang="es" className={`${inter.variable} ${outfit.variable}`}>
-      <body className="flex h-screen bg-[#F8F9FA] text-[#0F172A] antialiased overflow-hidden font-sans">
+      <body className="flex h-screen bg-[#FCFCFC] text-[#09090B] antialiased overflow-hidden font-sans">
         
-        {/* Cinematic Backdrop Glows */}
-        <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
-        <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10" />
-
-        {/* Sidebar Senior Nuclear */}
+        {/* Minimal Sidebar */}
         <motion.aside 
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="w-80 h-[96vh] m-[2vh] glass-card flex flex-col relative z-20 border-white/40 shadow-nuclear overflow-hidden"
+          initial={false}
+          animate={{ width: isCollapsed ? 80 : 280 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="h-full bg-white border-r border-zinc-200 flex flex-col relative z-20 overflow-hidden"
         >
-          {/* Logo Section */}
-          <div className="p-10 flex flex-col gap-6">
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-nuclear relative overflow-hidden transition-transform duration-500 group-hover:scale-110">
-                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-                 <Zap className="text-white w-6 h-6 fill-current relative z-10" />
-              </div>
-              <div className="flex flex-col">
-                  <h2 className="font-display font-black text-2xl tracking-tighter leading-tight">
-                    ROBO<span className="text-accent">FACTORY</span>
-                  </h2>
-                  <span className="premium-label opacity-60">Industrial Hub v2.5</span>
-              </div>
-            </div>
+          {/* Header / Logo */}
+          <div className="h-16 flex items-center px-6 justify-between border-b border-zinc-100">
+            <AnimatePresence mode="wait">
+              {!isCollapsed && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="flex items-center gap-2"
+                >
+                  <Zap className="text-blue-600 w-5 h-5 fill-current" />
+                  <span className="font-display font-bold text-sm tracking-tight">Antigravity</span>
+                </motion.div>
+              )}
+              {isCollapsed && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full flex justify-center"
+                >
+                  <Zap className="text-blue-600 w-5 h-5 fill-current" />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <nav className="flex-1 px-4 space-y-1">
-            <NavItem icon={<LayoutDashboard size={20} />} label="Panel Central" active />
-            <NavItem icon={<Rocket size={20} />} label="Línea de Agentes" />
-            <NavItem icon={<Layers size={20} />} label="Arquitectura IA" />
-            <NavItem icon={<Cpu size={20} />} label="Procesamiento" />
-            <NavItem icon={<Shield size={20} />} label="Seguridad Nuclear" />
-          </nav>
+          <div className="flex-1 py-6 px-4 space-y-1">
+            <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" active collapsed={isCollapsed} />
+            <NavItem icon={<Rocket size={18} />} label="Agent Builder" collapsed={isCollapsed} />
+            <NavItem icon={<Layers size={18} />} label="Deployments" collapsed={isCollapsed} />
+            <div className="pt-4 pb-2 px-3">
+               {!isCollapsed && <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Workspace</span>}
+               {isCollapsed && <div className="h-px bg-zinc-100 my-2" />}
+            </div>
+            <NavItem icon={<Cpu size={18} />} label="Infrastructure" collapsed={isCollapsed} />
+            <NavItem icon={<Shield size={18} />} label="Security" collapsed={isCollapsed} />
+          </div>
 
-          {/* User / Status Section */}
-          <div className="p-8 border-t border-white/10 space-y-6">
-            <div className="bg-primary/95 p-6 rounded-[2rem] shadow-nuclear relative overflow-hidden group border border-white/5">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full translate-x-16 translate-y-[-16px] blur-2xl group-hover:scale-150 transition-transform duration-1000" />
-               <p className="text-[9px] text-accent font-black uppercase tracking-[0.3em] mb-2 opacity-80">System Status</p>
-               <h4 className="text-white font-display font-bold text-sm leading-tight italic">Protocolo Maestro Activo</h4>
-               <div className="mt-6 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-accent animate-ping" />
-                      <span className="text-[10px] text-white/60 font-medium tracking-widest uppercase">Safe Mode</span>
-                  </div>
-                  <ChevronRight size={16} className="text-white/40 group-hover:translate-x-1 transition-transform" />
-               </div>
-            </div>
-            
-            <div className="flex items-center justify-between px-2">
-                <div className="flex gap-4">
-                  <Info size={16} className="text-slate-400 hover:text-primary transition-colors cursor-pointer" />
-                  <Settings size={16} className="text-slate-400 hover:text-primary transition-colors cursor-pointer" />
-                </div>
-                <span className="text-[10px] font-bold text-slate-300">© 2026 ANTIGRAVITY</span>
-            </div>
+          <div className="p-4 border-t border-zinc-100 space-y-1">
+            <NavItem icon={<Settings size={18} />} label="Settings" collapsed={isCollapsed} />
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors"
+            >
+              {isCollapsed ? <Menu size={18} className="mx-auto" /> : <ChevronLeft size={18} />}
+              {!isCollapsed && <span className="text-sm font-medium">Collapse Sidebar</span>}
+            </button>
           </div>
         </motion.aside>
 
-        {/* Contenido Principal */}
-        <main className="flex-1 overflow-y-auto no-scrollbar relative z-10 py-[2vh] pr-[2vh]">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="h-full glass-card border-white/40 shadow-premium overflow-y-auto no-scrollbar"
-          >
-            {children}
-          </motion.div>
-        </main>
+        <div className="flex-1 flex flex-col min-w-0 bg-[#FCFCFC]">
+          {/* Top Bar */}
+          <header className="h-16 border-b border-zinc-200 bg-white flex items-center justify-between px-8">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="relative w-full max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                <input 
+                  type="text" 
+                  placeholder="Search agents, deployments..." 
+                  className="w-full pl-10 pr-4 py-1.5 bg-zinc-100 border-none rounded-lg text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+               <button className="p-2 text-zinc-500 hover:bg-zinc-100 rounded-lg relative">
+                 <Bell size={18} />
+                 <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-white" />
+               </button>
+               <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 border border-white shadow-sm cursor-pointer" />
+            </div>
+          </header>
+
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 no-scrollbar">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key="content"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="max-w-7xl mx-auto h-full"
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </main>
+        </div>
       </body>
     </html>
   )
 }
 
-function NavItem({ icon, label, active = false }: { icon: any, label: string, active?: boolean }) {
+function NavItem({ icon, label, active = false, collapsed = false }: { icon: any, label: string, active?: boolean, collapsed?: boolean }) {
   return (
     <div className={`
-      flex items-center gap-5 px-6 py-4 rounded-2xl cursor-pointer transition-all duration-500 font-bold text-[11px] uppercase tracking-[0.15em] relative group
-      ${active 
-        ? 'bg-primary text-white shadow-nuclear translate-x-2' 
-        : 'text-slate-400 hover:text-primary hover:bg-white/50 translate-x-0'}
+      sidebar-item ${active ? 'sidebar-item-active' : ''}
+      ${collapsed ? 'justify-center px-0' : ''}
     `}>
-      <span className={`${active ? 'text-accent' : 'group-hover:text-primary'} transition-colors duration-500`}>
-        {icon}
-      </span>
-      <span>{label}</span>
-      {active && (
-        <motion.div 
-          layoutId="activeNav"
-          className="absolute left-0 w-1 h-6 bg-accent rounded-full" 
-        />
+      <span className="shrink-0">{icon}</span>
+      {!collapsed && (
+        <motion.span 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="truncate"
+        >
+          {label}
+        </motion.span>
       )}
     </div>
   )
