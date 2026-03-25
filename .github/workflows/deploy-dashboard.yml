@@ -26,13 +26,21 @@ jobs:
         run: |
           cd dashboard
           npm install
-          npm install framer-motion # Ensure framer-motion is available for cloud build
+          npm install framer-motion
 
       - name: Build with Next.js
         run: |
           cd dashboard
           npm run build
           mv out ../docs
+
+      - name: Inspect Build (Nuclear Check)
+        run: |
+          echo "Listing docs contents:"
+          ls -R docs
+          echo "Checking index.html paths:"
+          grep -o 'href="[^"]*"' docs/index.html | head -n 20
+          grep -o 'src="[^"]*"' docs/index.html | head -n 20
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
