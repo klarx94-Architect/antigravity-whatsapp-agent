@@ -1,3 +1,5 @@
+"use client"
+
 import { motion } from 'framer-motion'
 import { Zap, ShieldCheck, Activity, Plus, MoreHorizontal, MessageSquare, Box, Cpu, HardDrive } from 'lucide-react'
 

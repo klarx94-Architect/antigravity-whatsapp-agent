@@ -1,3 +1,5 @@
+"use client"
+
 import './globals.css'
 import { Inter, Outfit } from 'next/font/google'
 import { LayoutDashboard, Rocket, Zap, Sliders, ChevronRight, Settings, Info } from 'lucide-react'
