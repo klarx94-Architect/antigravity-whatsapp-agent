@@ -1,15 +1,15 @@
 #!/bin/bash
-# AgentKit — Script de inicio
-# El usuario ejecuta: bash start.sh
+# ⚡ Antigravity WhatsApp Agent — Script de inicio
+# Ejecutar: bash start.sh
 
 set -e
 
 echo ""
 echo "==========================================================="
-echo "   AgentKit — WhatsApp AI Agent Builder"
+echo "   ⚡ Antigravity WhatsApp Agent — Setup"
 echo "==========================================================="
 echo ""
-echo "  Preparando tu entorno para construir tu agente de IA..."
+echo "  Preparando tu entorno de agente IA con Gemini..."
 echo ""
 
 # ── Verificar Python ──────────────────────────────────────────
@@ -28,52 +28,52 @@ if [ "$PYTHON_MAJOR" -lt 3 ] || ([ "$PYTHON_MAJOR" -eq 3 ] && [ "$PYTHON_MINOR" 
     echo ""
     echo "  ERROR: Necesitas Python 3.11 o superior."
     echo "  Version actual: $(python3 --version)"
-    echo "  Descarga la ultima version en: https://python.org/downloads"
     echo ""
     exit 1
 fi
 echo "  OK — $(python3 --version)"
 
-# ── Verificar Claude Code ────────────────────────────────────
-echo "  [2/4] Verificando Claude Code..."
-if ! command -v claude &> /dev/null; then
-    echo ""
-    echo "  Claude Code no esta instalado."
-    echo ""
-    echo "  Para instalarlo:"
-    echo "    npm install -g @anthropic-ai/claude-code"
-    echo ""
-    echo "  Si no tienes npm/Node.js:"
-    echo "    https://nodejs.org (descarga LTS)"
-    echo ""
-    echo "  Despues de instalar, ejecuta 'claude' una vez para autenticarte"
-    echo "  y luego vuelve a correr: bash start.sh"
-    echo ""
-    exit 1
+# ── Verificar/crear entorno virtual ──────────────────────────
+echo "  [2/4] Configurando entorno virtual..."
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    echo "  OK — venv creado"
+else
+    echo "  OK — venv existente"
 fi
-echo "  OK — Claude Code instalado"
+source venv/bin/activate
+
+# ── Instalar dependencias ──────────────────────────────────────
+echo "  [3/4] Instalando dependencias..."
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt -q
+    echo "  OK — google-generativeai y dependencias instaladas"
+fi
 
 # ── Crear carpetas base ──────────────────────────────────────
-echo "  [3/4] Preparando carpetas..."
-mkdir -p knowledge
+echo "  [4/4] Preparando carpetas..."
+mkdir -p knowledge agent/providers config tests
 echo "  OK — Estructura lista"
-
-# ── Listo ─────────────────────────────────────────────────────
-echo "  [4/4] Todo verificado"
 
 echo ""
 echo "==========================================================="
 echo ""
-echo "  Todo listo. Ahora abre Claude Code:"
+echo "  Todo listo. Pasos siguientes:"
 echo ""
-echo "    claude"
+echo "  1. Copia .env.example a .env:"
+echo "     cp .env.example .env"
 echo ""
-echo "  Y escribe:"
+echo "  2. Obtén tu GEMINI_API_KEY GRATIS en:"
+echo "     https://aistudio.google.com/app/apikey"
 echo ""
-echo "    /build-agent"
+echo "  3. Agrega tu clave en .env:"
+echo "     GEMINI_API_KEY=tu_clave_aqui"
 echo ""
-echo "  Claude Code te guiara paso a paso para construir"
-echo "  tu agente de WhatsApp personalizado con IA."
+echo "  4. Configura tu proveedor de WhatsApp en .env"
+echo "     (Recomendado: Whapi.cloud — tiene sandbox gratis)"
+echo ""
+echo "  5. Prueba el agente en terminal:"
+echo "     python tests/test_local.py"
 echo ""
 echo "==========================================================="
 echo ""
