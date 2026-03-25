@@ -299,55 +299,118 @@ function HealthCard({ label, status, value }: any) {
 
 function SecurityView() {
   return (
-    <div className="space-y-8">
-      <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Security & Credentials</h2>
-      <div className="glass-card bg-white p-8 space-y-6">
-        <SecretInput label="GitHub Personal Access Token" value="ghp_****************************" />
-        <SecretInput label="Gemini API Key" value="AIzaSy****************************" />
-        <SecretInput label="WhatsApp Token (Whapi)" value="********************************" />
+    <div className="space-y-10">
+      <div className="space-y-2 px-1">
+        <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Seguridad & Credenciales</h2>
+        <p className="text-xs text-zinc-400 font-medium uppercase tracking-widest">Configuración de Puentes Nucleares</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="glass-card bg-white p-8 space-y-8">
+          <div className="flex items-center gap-3 border-b border-zinc-100 pb-4">
+             <ShieldCheck className="text-blue-600" size={20} />
+             <h3 className="text-sm font-bold text-zinc-900">Tokens de Infraestructura</h3>
+          </div>
+          <SecretInput 
+            label="GitHub Personal Access Token" 
+            value="ghp_****************************" 
+            help="Permite a la plataforma persistir tus agentes y configuraciones en el repositorio."
+          />
+          <SecretInput 
+            label="Gemini AI API Key" 
+            value="AIzaSy****************************" 
+            help="El 'Cerebro' de tus agentes. Proporciona la capacidad de razonamiento y procesamiento de lenguaje."
+          />
+          <SecretInput 
+            label="WhatsApp Token (Whapi.cloud)" 
+            value="********************************" 
+            help="Proveedor externo de WhatsApp. Nota: Este servicio tiene un coste recurrente por parte de Whapi."
+          />
+        </div>
+
+        <div className="glass-card bg-zinc-900 text-white p-8 space-y-8 border-none ring-1 ring-white/10 shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+             <Zap className="text-emerald-400" size={20} />
+             <h3 className="text-sm font-bold">Meta Cloud Hub (Coste Cero)</h3>
+          </div>
+          
+          <div className="space-y-6">
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Para desplegar agentes sin costes de suscripción, utiliza la API Oficial de Meta. Las primeras 1,000 conversaciones/mes son GRATUITAS para la empresa si son iniciadas por el usuario.
+            </p>
+
+            <div className="space-y-4">
+               <GuideStep number={1} label="Registro Meta Developers" text="Crea una cuenta en developers.facebook.com y activa una APP de tipo 'Business'." />
+               <GuideStep number={2} label="Configurar Webhook" text="Apunta el Webhook de Meta a la URL de tu despliegue de Architect Build." />
+               <GuideStep number={3} label="Obtener Token Perpetuo" text="Genera un 'System User Token' con permisos 'whatsapp_business_messaging'." />
+            </div>
+
+            <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20">
+               Descargar Guía de Configuración Meta (PDF)
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-function SecretInput({ label, value }: any) {
+function GuideStep({ number, label, text }: any) {
   return (
-    <div className="space-y-2">
-      <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">{label}</label>
+    <div className="flex gap-4">
+       <div className="shrink-0 w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[10px] font-bold text-emerald-400">
+          {number}
+       </div>
+       <div className="space-y-1">
+          <h4 className="text-[11px] font-black uppercase tracking-tight text-white">{label}</h4>
+          <p className="text-[10px] text-zinc-500 leading-normal">{text}</p>
+       </div>
+    </div>
+  )
+}
+
+function SecretInput({ label, value, help }: any) {
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-end">
+        <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest leading-none">{label}</label>
+        <span className="text-[9px] text-zinc-300 italic font-medium">{help}</span>
+      </div>
       <div className="flex gap-2">
         <input 
           type="password" 
           value={value} 
           readOnly 
-          className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-mono text-zinc-500"
+          className="flex-1 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-xs font-mono text-zinc-500 outline-none focus:ring-1 focus:ring-blue-500 transition-all"
         />
-        <button className="nuclear-button !bg-zinc-100 !text-zinc-900 border border-zinc-200 hover:!bg-zinc-200">
-           Change
+        <button className="px-4 py-2 bg-zinc-100 text-zinc-900 border border-zinc-200 hover:bg-zinc-200 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-colors">
+           Editar
         </button>
       </div>
     </div>
   )
 }
 
-function OperationsMonitor({ status }: any) {
+function OperationsMonitor({ status, vaultFiles = [] }: any) {
   const isOnline = status?.status === 'online'
+  const agentCount = vaultFiles.filter((f: any) => f.name.endsWith('.yaml')).length
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       {/* Power Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <PowerStat label="Total AI Operations" value="1,248" delta="+12%" color="blue" icon={<Zap size={20} />} />
-        <PowerStat label="Avg Engine Latency" value="342ms" delta="-15ms" color="emerald" icon={<Cpu size={20} />} />
-        <PowerStat label="Active Cloud Agents" value="4" delta="Stable" color="blue" icon={<Layers size={20} />} />
-        <PowerStat label="Architect Value" value="$480.00" delta="Projected" color="indigo" icon={<Database size={20} />} />
+        <PowerStat label="Operaciones IA Totales" value={agentCount > 0 ? "1,248" : "0"} delta={agentCount > 0 ? "+12%" : "N/A"} color="blue" icon={<Zap size={20} />} />
+        <PowerStat label="Latencia Promedio" value={isOnline ? "342ms" : "---"} delta={isOnline ? "-15ms" : "N/A"} color="emerald" icon={<Cpu size={20} />} />
+        <PowerStat label="Agentes Activos (Cloud)" value={agentCount.toString()} delta={agentCount > 0 ? "Stable" : "Idle"} color="blue" icon={<Layers size={20} />} />
+        <PowerStat label="Valor Proyectado" value={agentCount > 0 ? "$480.00" : "$0.00"} delta="Estimado" color="indigo" icon={<Database size={20} />} />
       </div>
 
       <div className="space-y-6">
         <div className="flex items-center justify-between px-1">
           <h2 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Línea de Producción Aktiva</h2>
           <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
-             <Activity size={12} className="animate-pulse text-blue-500" />
-             REAL-TIME FEED
+             <Activity size={12} className={isOnline ? "animate-pulse text-blue-500" : "text-zinc-300"} />
+             FEED EN TIEMPO REAL
           </div>
         </div>
 
@@ -357,13 +420,23 @@ function OperationsMonitor({ status }: any) {
                 <AlertCircle size={32} className="text-zinc-300" />
              </div>
              <div className="space-y-2">
-                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Hub de Inteligencia Desconectado</h3>
-                <p className="text-xs text-zinc-400 font-medium max-w-xs leading-relaxed uppercase tracking-tighter">Inicia el motor local (`cd agent && python main.py`) para sincronizar la red neuronal.</p>
+                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Núcleo de Inteligencia Local Offline</h3>
+                <p className="text-xs text-zinc-400 font-medium max-w-sm leading-relaxed uppercase tracking-tighter">
+                   El dashboard está operando en modo NUBE (GitHub), pero la ejecución del cerebro local requiere iniciar el comando:
+                   <br/><code className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded mt-2 inline-block lowercase">cd agent && python main.py</code>
+                </p>
              </div>
           </div>
         )}
 
-        {isOnline && (
+        {isOnline && agentCount === 0 && (
+          <div className="p-12 bg-zinc-50 rounded-[40px] border border-zinc-100 text-center space-y-4">
+             <p className="text-sm text-zinc-400 font-medium italic">Esperando la inyección del primer agente nuclear...</p>
+             <button onClick={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'builder' }))} className="text-xs font-bold text-blue-600 hover:underline">Iniciar Protocolo de Vida</button>
+          </div>
+        )}
+
+        {agentCount > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <AgentStatusCard name="Sales Intelligence Alpha" status="running" type="Inbound Bot" />
             <AgentStatusCard name="Technical Support V2" status="running" type="L2 Triage" />
@@ -416,8 +489,8 @@ function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
                    <Settings className="text-white w-5 h-5" />
                 </div>
                 <div>
-                   <h2 className="text-lg font-bold text-zinc-900 tracking-tight leading-none">Global System Config</h2>
-                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">v3.5 Industrial Node</p>
+                   <h2 className="text-lg font-bold text-zinc-900 tracking-tight leading-none">Configuración Global del Sistema</h2>
+                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">Nodo Industrial v3.5</p>
                 </div>
              </div>
              <button onClick={onClose} className="p-2 hover:bg-zinc-200 rounded-full transition-colors text-zinc-400">
@@ -428,17 +501,17 @@ function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
           <div className="flex-1 overflow-y-auto p-10 space-y-12 no-scrollbar">
              <section className="space-y-6">
                 <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest flex items-center gap-3">
-                   <Zap size={14} className="text-blue-500" /> Identity & Branding
+                   <Zap size={14} className="text-blue-500" /> Identidad & Marca
                 </h3>
                 <div className="grid grid-cols-2 gap-6">
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Platform Name</label>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nombre de Plataforma</label>
                       <input type="text" defaultValue="Architect Build" className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold" />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Interface Locale</label>
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Idioma de Interfaz</label>
                       <select className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold appearance-none">
-                         <option>Spanish (Global)</option>
+                         <option>Español (Global)</option>
                          <option>English (Direct)</option>
                       </select>
                    </div>
@@ -447,19 +520,19 @@ function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => vo
 
              <section className="space-y-6">
                 <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest flex items-center gap-3">
-                   <Activity size={14} className="text-blue-500" /> Operational Features
+                   <Activity size={14} className="text-blue-500" /> Funciones Operativas
                 </h3>
                 <div className="space-y-4">
-                   <ToggleRow label="Real-time Synchronization" description="Push changes to GitHub instantly on edit." active />
-                   <ToggleRow label="Advanced Debug Mode" description="Show raw LLM reasoning logs in the builder." />
-                   <ToggleRow label="Auto-Scaling Infrastructure" description="Provision nodes based on traffic spikes." active />
+                   <ToggleRow label="Sincronización en Tiempo Real" description="Actualizar archivos en GitHub instantáneamente al editar." active />
+                   <ToggleRow label="Modo Debug Avanzado" description="Mostrar razonamiento RAW de la IA en el constructor." />
+                   <ToggleRow label="Auto-Escalado de Infraestructura" description="Provisionar nodos según picos de tráfico." active />
                 </div>
              </section>
           </div>
 
           <div className="p-8 border-t border-zinc-100 flex justify-end gap-3 bg-zinc-50/50">
-             <button onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors">Cancel</button>
-             <button onClick={onClose} className="nuclear-button !bg-zinc-900 !px-8 text-sm !py-3 transform active:scale-95 transition-all">Apply Configuration</button>
+             <button onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors">Cancelar</button>
+             <button onClick={onClose} className="nuclear-button !bg-zinc-900 !px-8 text-sm !py-3 transform active:scale-95 transition-all">Aplicar Cambios</button>
           </div>
        </motion.div>
     </div>
