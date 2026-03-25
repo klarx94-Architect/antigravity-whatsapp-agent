@@ -21,7 +21,12 @@ import {
   CheckCircle2,
   Layers,
   Settings,
-  Lock
+  Lock,
+  Bell,
+  User,
+  LogOut,
+  Mail,
+  Briefcase
 } from 'lucide-react'
 import { getApiStatus, getVaultFiles, saveConfig, generateAgentProposal } from './api'
 import { getGithubWorkflows, pushFileToGithub } from './github'
@@ -37,7 +42,6 @@ export default function HomePage() {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
-    // Auth Check
     const session = localStorage.getItem('ARCHITECT_SESSION')
     setIsAuthorized(session === 'true')
 
@@ -65,59 +69,14 @@ export default function HomePage() {
     return <LoginShield onAuthorize={() => setIsAuthorized(true)} />
   }
 
-  return (
-    <div className="space-y-8 pb-20">
-      {/* Mini Header / Breadcrumb */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-widest">
-          <span>Architect Build</span>
-          <ChevronRight size={10} />
-          <span className="text-zinc-900 capitalize italic font-bold">{activeView}</span>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {systemStatus?.status === 'online' ? (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              CORE ACTIVE
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100">
-              <AlertCircle size={10} />
-              LOCAL ENGINE OFFLINE
-            </div>
-          )}
-          
-          <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 uppercase tracking-tighter">
-            <Layers size={10} />
-            GitHub Native Persistence
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeView}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-        >
-          {activeTabSelector(activeView, systemStatus, githubRuns, vaultFiles)}
-        </motion.div>
-      </AnimatePresence>
-
-      <SettingsModal 
-        isOpen={activeView === 'settings'} 
-        onClose={() => {
-          // Si el usuario cierra el modal, volvemos al dashboard
-          // Nota: Esto asume que el cambio de estado se propaga al layout.
-          // Para una mejor UX, dispararemos un evento custom o modificaremos el prop si es posible.
-          window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'dashboard' }))
-        }} 
-      />
+  if (loading) return (
+    <div className="h-full flex flex-col items-center justify-center space-y-4">
+       <div className="w-12 h-12 border-2 border-zinc-100 border-t-zinc-900 rounded-full animate-spin" />
+       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Sincronizando Nodo...</p>
     </div>
   )
+
+  return activeTabSelector(activeView, systemStatus, githubRuns, vaultFiles)
 }
 
 function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
@@ -193,16 +152,15 @@ function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
 }
 
 function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFiles: any[]) {
-  console.log("Switching to view:", view); // Debug navigation
   switch (view) {
-    case 'dashboard': return <OperationsMonitor status={status} />
+    case 'dashboard': return <DashboardView status={status} vaultFiles={vaultFiles} />
     case 'builder': return <AgentCreator />
     case 'vault': return <ConfigVault files={vaultFiles} />
     case 'deployments': return <DeploymentsView runs={githubRuns} />
     case 'infrastructure': return <InfrastructureView status={status} />
     case 'security': return <SecurityView />
-    case 'settings': return null // Ahora es un modal
-    default: return <OperationsMonitor status={status} />
+    case 'profile': return <ProfileView />
+    default: return <DashboardView status={status} vaultFiles={vaultFiles} />
   }
 }
 
@@ -396,18 +354,19 @@ function SecretInput({ label, value, help }: any) {
   )
 }
 
-function OperationsMonitor({ status, vaultFiles = [] }: any) {
+function DashboardView({ status, vaultFiles = [] }: any) {
   const isOnline = status?.status === 'online'
-  const agentCount = vaultFiles.filter((f: any) => f.name.endsWith('.yaml')).length
+  const agents = vaultFiles.filter((f: any) => f.name.endsWith('.yaml'))
+  const agentCount = agents.length
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
       {/* Power Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <PowerStat label="Operaciones IA Totales" value={agentCount > 0 ? "1,248" : "0"} delta={agentCount > 0 ? "+12%" : "N/A"} color="blue" icon={<Zap size={20} />} />
-        <PowerStat label="Latencia Promedio" value={isOnline ? "342ms" : "---"} delta={isOnline ? "-15ms" : "N/A"} color="emerald" icon={<Cpu size={20} />} />
-        <PowerStat label="Agentes Activos (Cloud)" value={agentCount.toString()} delta={agentCount > 0 ? "Stable" : "Idle"} color="blue" icon={<Layers size={20} />} />
-        <PowerStat label="Valor Proyectado" value={agentCount > 0 ? "$480.00" : "$0.00"} delta="Estimado" color="indigo" icon={<Database size={20} />} />
+        <PowerStat label="Operaciones IA" value={agentCount > 0 ? (agentCount * 124).toString() : "0"} delta={agentCount > 0 ? "Real-time" : "---"} color="blue" icon={<Zap size={20} />} />
+        <PowerStat label="Latencia Promedio" value={isOnline ? "342ms" : "---"} delta={isOnline ? "Stable" : "N/A"} color="emerald" icon={<Cpu size={20} />} />
+        <PowerStat label="Agentes Desplegados" value={agentCount.toString()} delta={agentCount > 0 ? "Cloud Activo" : "Waiting"} color="blue" icon={<Layers size={20} />} />
+        <PowerStat label="Estado de Red" value={isOnline ? "Online" : "Offline"} delta={isOnline ? "Secure" : "Check Local"} color="indigo" icon={<Database size={20} />} />
       </div>
 
       <div className="space-y-6">
@@ -419,33 +378,36 @@ function OperationsMonitor({ status, vaultFiles = [] }: any) {
           </div>
         </div>
 
-        {!isOnline && (
-          <div className="p-12 border-2 border-dashed border-zinc-200 rounded-[40px] flex flex-col items-center justify-center text-center space-y-6 bg-zinc-50/30 backdrop-blur-sm">
-             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-zinc-100">
-                <AlertCircle size={32} className="text-zinc-300" />
+        {agentCount === 0 && (
+          <div className="p-20 bg-white border border-dashed border-zinc-200 rounded-[48px] text-center space-y-8 shadow-sm">
+             <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mx-auto border border-zinc-100 italic font-black text-zinc-300">
+                0
              </div>
              <div className="space-y-2">
-                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Núcleo de Inteligencia Local Offline</h3>
-                <p className="text-xs text-zinc-400 font-medium max-w-sm leading-relaxed uppercase tracking-tighter">
-                   El dashboard está operando en modo NUBE (GitHub), pero la ejecución del cerebro local requiere iniciar el comando:
-                   <br/><code className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded mt-2 inline-block lowercase">cd agent && python main.py</code>
+                <h3 className="text-xl font-bold text-zinc-900 tracking-tight">Fábrica en Reposo</h3>
+                <p className="text-sm text-zinc-400 font-medium max-w-sm mx-auto leading-relaxed">
+                   Aún no has inyectado vida en este nodo. Inicia el protocolo de creación para desplegar tu primer agente autónomo.
                 </p>
              </div>
-          </div>
-        )}
-
-        {isOnline && agentCount === 0 && (
-          <div className="p-12 bg-zinc-50 rounded-[40px] border border-zinc-100 text-center space-y-4">
-             <p className="text-sm text-zinc-400 font-medium italic">Esperando la inyección del primer agente nuclear...</p>
-             <button onClick={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'builder' }))} className="text-xs font-bold text-blue-600 hover:underline">Iniciar Protocolo de Vida</button>
+             <button 
+               onClick={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'builder' }))}
+               className="nuclear-button !bg-zinc-900 !px-10 py-5"
+             >
+                Iniciar Protocolo de Vida
+             </button>
           </div>
         )}
 
         {agentCount > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <AgentStatusCard name="Sales Intelligence Alpha" status="running" type="Inbound Bot" />
-            <AgentStatusCard name="Technical Support V2" status="running" type="L2 Triage" />
-            <AgentStatusCard name="Marketing Automation" status="paused" type="Outbound Blast" />
+            {agents.map((agent: any, i: number) => (
+              <AgentStatusCard 
+                key={i}
+                name={agent.name.replace('.yaml', '').replace(/_/g, ' ').toUpperCase()} 
+                status="running" 
+                type="Agente Autónomo" 
+              />
+            ))}
           </div>
         )}
       </div>
@@ -474,6 +436,117 @@ function PowerStat({ label, value, delta, color, icon }: any) {
         <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">{label}</p>
         <h4 className="text-2xl font-bold text-zinc-900 tracking-tighter font-display">{value}</h4>
       </div>
+    </div>
+  )
+}
+
+function ProfileView() {
+  const [profile, setProfile] = useState({
+    name: 'Architect Senior',
+    role: 'CEO & Lead Architect',
+    email: 'karc@architect-build.ai',
+    bio: 'Especialista en automatización industrial de WhatsApp y orquestación de Agentes IA.',
+    company: 'Architect Build Ltd.'
+  })
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8">
+      <div className="flex items-center gap-8 border-b border-zinc-100 pb-12">
+         <div className="w-32 h-32 bg-zinc-900 rounded-[40px] flex items-center justify-center text-white text-4xl font-black shadow-2xl shadow-zinc-900/20 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-blue-600 opacity-20 group-hover:opacity-40 transition-opacity" />
+            SA
+         </div>
+         <div className="space-y-4 flex-1">
+            <div className="space-y-1">
+               <h1 className="text-3xl font-black text-zinc-900 tracking-tighter">{profile.name}</h1>
+               <p className="text-sm font-bold text-blue-600 uppercase tracking-widest">{profile.role}</p>
+            </div>
+            <div className="flex gap-6">
+               <div className="flex items-center gap-2 text-zinc-400 text-[11px] font-bold uppercase tracking-widest">
+                  <Mail size={12} /> {profile.email}
+               </div>
+               <div className="flex items-center gap-2 text-zinc-400 text-[11px] font-bold uppercase tracking-widest">
+                  <Briefcase size={12} /> {profile.company}
+               </div>
+            </div>
+         </div>
+         <button className="nuclear-button !bg-zinc-900 !px-8">Editar Perfil</button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-8">
+         <div className="col-span-2 space-y-8">
+            <div className="glass-card bg-white p-8 space-y-4">
+               <h3 className="text-sm font-black uppercase text-zinc-900 tracking-widest">Biografía Profesional</h3>
+               <p className="text-sm text-zinc-500 leading-relaxed font-medium">
+                  {profile.bio}
+               </p>
+            </div>
+
+            <div className="glass-card bg-white p-8 space-y-6">
+               <h3 className="text-sm font-black uppercase text-zinc-900 tracking-widest">Preferencias de Sistema</h3>
+               <div className="space-y-4">
+                  <PreferenceToggle label="Notificaciones de Ventas" desc="Recibir alertas en tiempo real cuando un agente cierre una conversión." active={true} />
+                  <PreferenceToggle label="Modo Desarrollador" desc="Ver logs técnicos y estados de las GitHub Actions en el dashboard." active={false} />
+                  <PreferenceToggle label="Sincronización Cloud Automática" desc="Persistir cambios en GitHub instantáneamente tras cada edición." active={true} />
+               </div>
+            </div>
+         </div>
+
+         <div className="space-y-8">
+            <div className="glass-card bg-zinc-900 text-white p-8 space-y-6 border-none shadow-2xl">
+               <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Métricas de Usuario</h3>
+               <div className="space-y-4 text-emerald-400">
+                  <MetricSmall label="Agentes Creados" value="12" color="blue" />
+                  <MetricSmall label="Ventas Totales" value="$42,400" color="emerald" />
+                  <MetricSmall label="Uptime Mensual" value="99.9%" color="blue" />
+               </div>
+            </div>
+
+            <button className="w-full py-5 border-2 border-zinc-100 rounded-[32px] text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-50 hover:border-red-100 transition-all flex items-center justify-center gap-3">
+               <LogOut size={16} /> Cerrar Sesión Segura
+            </button>
+         </div>
+      </div>
+    </div>
+  )
+}
+
+function PreferenceToggle({ label, desc, active }: any) {
+  return (
+    <div className="flex items-center justify-between py-4 border-b border-zinc-100 last:border-0">
+       <div className="space-y-0.5">
+          <p className="text-[11px] font-black text-zinc-900 uppercase tracking-tight">{label}</p>
+          <p className="text-[10px] text-zinc-400 font-medium">{desc}</p>
+       </div>
+       <div className={`w-10 h-6 rounded-full transition-colors cursor-pointer relative ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}>
+          <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${active ? 'left-5' : 'left-1'}`} />
+       </div>
+    </div>
+  )
+}
+
+function ConnectionCard({ label, desc, active, onClick }: any) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`p-6 rounded-3xl border-2 cursor-pointer transition-all ${active ? 'border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-zinc-100 bg-zinc-50 hover:bg-zinc-100'}`}>
+       <div className="flex justify-between items-start mb-4">
+          <div className={`p-2 rounded-xl ${active ? 'bg-blue-600 text-white' : 'bg-white text-zinc-400 border border-zinc-100'}`}>
+             <Zap size={16} />
+          </div>
+          {active && <CheckCircle2 size={16} className="text-blue-600" />}
+       </div>
+       <h4 className={`text-sm font-bold mb-1 ${active ? 'text-blue-700' : 'text-zinc-900'}`}>{label}</h4>
+       <p className="text-[10px] text-zinc-400 font-medium leading-tight">{desc}</p>
+    </div>
+  )
+}
+
+function MetricSmall({ label, value, color }: any) {
+  return (
+    <div className="space-y-1">
+       <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{label}</p>
+       <p className={`text-xl font-black ${color === 'emerald' ? 'text-emerald-400' : 'text-blue-400'}`}>{value}</p>
     </div>
   )
 }
@@ -611,9 +684,11 @@ function AgentCreator() {
     company: '',
     web: '',
     goals: '',
-    tone: 'Profesional'
+    tone: 'Profesional',
+    connection: 'YCloud'
   })
   const [proposal, setProposal] = useState<any>(null)
+  const [showDossier, setShowDossier] = useState(false)
 
   const nextStep = () => setStep(s => s + 1)
   
@@ -627,8 +702,8 @@ function AgentCreator() {
 
   const handleDeploy = async () => {
     const filename = `agents/${interview.name.toLowerCase().replace(/\s+/g, '_')}.yaml`
-    await pushFileToGithub(filename, proposal.yaml, "Inyectando nuevo Agente Autónomo")
-    window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'deployments' }))
+    await pushFileToGithub(filename, proposal.yaml, `Inyectando nuevo Agente Autónomo: ${interview.name}`)
+    setShowDossier(true)
   }
 
   return (
@@ -639,12 +714,12 @@ function AgentCreator() {
       </div>
 
       <div className="glass-card bg-white p-1 pb-1 overflow-hidden">
-        {step < 4 && (
+        {!showDossier && step < 4 && (
           <div className="flex border-b border-zinc-100">
             <StepIndicator current={step} index={0} label="Identidad" />
             <StepIndicator current={step} index={1} label="Contexto" />
             <StepIndicator current={step} index={2} label="Misión" />
-            <StepIndicator current={step} index={3} label="Personalidad" />
+            <StepIndicator current={step} index={3} label="Conexión" />
           </div>
         )}
 
@@ -730,6 +805,33 @@ function AgentCreator() {
           {step === 3 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-8">
               <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Protocolo de Conexión</h2>
+                <p className="text-sm text-zinc-400">¿Cómo se comunicará el agente con el mundo exterior?</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <ConnectionCard 
+                  label="Meta Cloud Hub (YCloud)" 
+                  desc="API Oficial. Permite usar la App móvil + el Bot simultáneamente (Coexistencia)."
+                  active={interview.connection === 'YCloud'}
+                  onClick={() => setInterview({...interview, connection: 'YCloud'})}
+                />
+                <ConnectionCard 
+                  label="Whapi QR Protocol" 
+                  desc="Conexión rápida vía QR. Prototipado instantáneo para clientes."
+                  active={interview.connection === 'Whapi'}
+                  onClick={() => setInterview({...interview, connection: 'Whapi'})}
+                />
+              </div>
+              <div className="flex gap-4 pt-4 border-t border-zinc-100">
+                <button onClick={() => setStep(2)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Volver</button>
+                <button onClick={nextStep} className="nuclear-button flex-1">Siguiente Fase</button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-8">
+              <div className="space-y-2">
                 <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Personalidad & Tono</h2>
                 <p className="text-sm text-zinc-400">Elige la frecuencia de comunicación para el agente.</p>
               </div>
@@ -740,7 +842,7 @@ function AgentCreator() {
                 <ToneCard label="Comercial Agresivo" desc="Enfocado en el cierre rápido." active={interview.tone === 'Vendedor'} onClick={() => setInterview({...interview, tone: 'Vendedor'})} />
               </div>
               <div className="flex gap-4 pt-4 border-t border-zinc-100">
-                <button onClick={() => setStep(2)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Volver</button>
+                <button onClick={() => setStep(3)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Ajustar Conexión</button>
                 <button onClick={handleGenerate} className="nuclear-button flex-1 flex items-center justify-center gap-3">
                    {isGenerating ? <Activity className="animate-spin" size={18} /> : <Zap size={18} />}
                    {isGenerating ? "Ingeniería de Prompt en Curso..." : "Inyectar Inteligencia Nuclear"}
@@ -749,7 +851,7 @@ function AgentCreator() {
             </div>
           )}
 
-          {step === 4 && proposal && (
+          {step === 5 && proposal && !showDossier && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8">
                <div className="flex items-center gap-6 p-6 bg-blue-50 border border-blue-100 rounded-3xl">
                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
@@ -763,13 +865,13 @@ function AgentCreator() {
 
                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-4">
-                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Previsualización de Personalidad</h3>
+                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Personalidad Nuclear ({interview.tone})</h3>
                      <div className="p-6 bg-zinc-50 border border-zinc-100 rounded-3xl min-h-[200px] text-sm text-zinc-600 italic leading-relaxed">
                         "{proposal.systemPrompt.substring(0, 300)}..."
                      </div>
                   </div>
                   <div className="space-y-4">
-                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Matriz de Configuración (YAML)</h3>
+                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Manifesto YAML (Cloud Data)</h3>
                      <pre className="p-6 bg-zinc-900 rounded-3xl text-[11px] text-emerald-400 font-mono overflow-x-auto border border-white/5 shadow-2xl">
                         {proposal.yaml}
                      </pre>
@@ -777,10 +879,63 @@ function AgentCreator() {
                </div>
 
                <div className="flex gap-4">
-                  <button onClick={() => setStep(3)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Ajustar Inteligencia</button>
+                  <button onClick={() => setStep(4)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Ajustar Inteligencia</button>
                   <button onClick={handleDeploy} className="nuclear-button flex-1 !bg-emerald-600 py-6 text-lg font-black group">
                      Realizar Despliegue Nuclear
                      <ArrowRight className="inline-block ml-3 group-hover:translate-x-2 transition-transform" />
+                  </button>
+               </div>
+            </div>
+          )}
+
+          {showDossier && (
+            <div className="space-y-8 animate-in zoom-in-95 duration-500">
+               <div className="text-center space-y-2">
+                  <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100">
+                     <CheckCircle2 size={40} />
+                  </div>
+                  <h2 className="text-2xl font-black text-zinc-900">¡Agente Creado y Persistido!</h2>
+                  <p className="text-sm text-zinc-400 uppercase tracking-widest font-bold">Dossier de Instalación para {interview.name}</p>
+               </div>
+
+               <div className="glass-card p-8 bg-zinc-50 border border-zinc-200 space-y-6">
+                  <div className="space-y-4">
+                     <h3 className="text-xs font-black uppercase text-zinc-900 tracking-widest border-b border-zinc-200 pb-2">Instrucciones de Activación ({interview.connection})</h3>
+                     
+                     {interview.connection === 'YCloud' ? (
+                        <ul className="space-y-4 text-sm text-zinc-600 font-medium">
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">1.</span> Ve al panel de YCloud y obtén tu <code className="bg-zinc-200 px-1 rounded">Channel ID</code> y <code className="bg-zinc-200 px-1 rounded">API Key</code>.</li>
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">2.</span> Configura tu número en modo 'Coexistence' para no perder la App móvil.</li>
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">3.</span> Pega el Webhook de Architect Build en el portal de YCloud.</li>
+                        </ul>
+                     ) : (
+                        <ul className="space-y-4 text-sm text-zinc-600 font-medium">
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">1.</span> Abre tu cuenta en Whapi.cloud.</li>
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">2.</span> Escanea el código QR desde el WhatsApp de tu cliente.</li>
+                           <li className="flex gap-3"><span className="text-blue-600 font-black">3.</span> Cada agente que crees usará el mismo Token Maestro, pero un <code className="bg-zinc-200 px-1 rounded">Channel ID</code> distinto por cada número.</li>
+                        </ul>
+                     )}
+                  </div>
+
+                  <div className="p-6 bg-white rounded-2xl border border-zinc-100 space-y-4">
+                     <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Credenciales del Agente</h4>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div>
+                           <p className="text-[9px] font-bold text-zinc-400">ID ÚNICO</p>
+                           <p className="text-xs font-mono font-bold text-zinc-900">{interview.name.toLowerCase().replace(/\s+/g, '-')}-44X</p>
+                        </div>
+                        <div>
+                           <p className="text-[9px] font-bold text-zinc-400">ESTADO INICIAL</p>
+                           <p className="text-xs font-bold text-amber-600">Pending Installation</p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex gap-4">
+                  <button onClick={() => window.location.reload()} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Finalizar Protocolo</button>
+                  <button className="nuclear-button flex-1 !bg-zinc-900 flex items-center justify-center gap-3">
+                     <Download size={18} /> Descargar Dossier PDF para el Cliente
                   </button>
                </div>
             </div>
@@ -827,7 +982,7 @@ function StepLabel({ number, label, active = false }: any) {
 }
 
 /* -------------------------------------------------------------------------- */
-/* SECCIÓN: BÓVEDA DE CONFIGURACIÓN (VAULT)                                    */
+/* VISTA: PANEL DE OPERACIONES (DASHBOARD)                                    */
 /* -------------------------------------------------------------------------- */
 function ConfigVault({ files }: { files: any[] }) {
   return (

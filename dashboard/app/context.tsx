@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
-type ViewType = 'dashboard' | 'builder' | 'vault' | 'deployments' | 'infrastructure' | 'security' | 'settings'
+type ViewType = 'dashboard' | 'builder' | 'vault' | 'deployments' | 'infrastructure' | 'security' | 'settings' | 'profile'
 
 interface ViewContextType {
   activeView: ViewType
@@ -17,7 +17,7 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
   // Listener para cambios externos (ej: desde modales o eventos globales)
   useEffect(() => {
     const handleViewChange = (e: any) => {
-      if (e.detail) setActiveView(e.detail)
+      if (e.detail) setActiveView(e.detail as ViewType)
     }
     window.addEventListener('architect-view-change', handleViewChange)
     return () => window.removeEventListener('architect-view-change', handleViewChange)
