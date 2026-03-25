@@ -51,30 +51,21 @@ export async function sendChatMessage(sessionId: string, message: string) {
  * En el frontend, esto permite automatizar la creación del System Prompt.
  */
 export async function generateAgentProposal(interviewData: any) {
-  // Simulador de Lógica IA para el Creador Autónomo
-  // En producción, esto se envía al endpoint /generate-agent del backend local
-  console.log("🛠️ Architect Engine: Generating Intelligence Protocol...", interviewData)
-  
-  // Retraso artificial para simular "pensamiento"
-  await new Promise(resolve => setTimeout(resolve, 2000))
-
-  return {
-    name: interviewData.name || "Agente Sin Nombre",
-    systemPrompt: `Eres un Agente Elite de ${interviewData.company || 'la organización'}. 
-Tu misión principal es: ${interviewData.goals || 'asistir al usuario'}.
-Contexto de marca: ${interviewData.web || 'No especificado'}.
-Tono: ${interviewData.tone || 'Profesional y Directo'}.
-
-[PROTOCOLOS DE RESPUESTA]
-- Responde siempre basándote en el contexto de la empresa.
-- Si no sabes algo, redirige a la web oficial.
-- Mantén la brevedad y eficiencia en cada mensaje por WhatsApp.`,
-    yaml: `agent:
-  name: "${interviewData.name}"
-  company: "${interviewData.company}"
-  mission: "${interviewData.goals}"
-  brain:
-    model: "gemini-1.5-pro"
-    personality: "${interviewData.tone}"`
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/generate-agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(interviewData)
+    })
+    if (!res.ok) throw new Error("Error generating agent via AI")
+    return await res.json()
+  } catch (err) {
+    console.error("Agent generation failed:", err)
+    // Fallback minimal en caso de error de red
+    return {
+      name: interviewData.name || "Agente Alpha",
+      systemPrompt: `Eres un asistente para ${interviewData.name}. Misión: ${interviewData.goals}`,
+      yaml: `agent:\n  name: "${interviewData.name}"\n  mission: "${interviewData.goals}"`
+    }
   }
 }

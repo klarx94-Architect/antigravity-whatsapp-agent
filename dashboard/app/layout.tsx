@@ -49,9 +49,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const { activeView, setActiveView } = useView()
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications] = useState([
-    { id: 1, title: 'Protocolo de Vida Agente Alpha Iniciado', time: 'Hace 5m', type: 'success' },
-    { id: 2, title: 'Sincronización GitHub Completada', time: 'Hace 12m', type: 'success' },
-    { id: 3, title: 'Meta Cloud Hub: Webhook Activo', time: 'Hace 1h', type: 'success' }
+    { id: 1, title: 'Estación de Control Alpha Activa', time: 'Ahora', type: 'success' }
   ])
 
   return (

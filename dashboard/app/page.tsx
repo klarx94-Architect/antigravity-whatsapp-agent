@@ -159,7 +159,8 @@ function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFi
     case 'deployments': return <DeploymentsView runs={githubRuns} />
     case 'infrastructure': return <InfrastructureView status={status} />
     case 'security': return <SecurityView />
-    case 'profile': return <ProfileView />
+    case 'profile': return <ProfileView vaultFiles={vaultFiles} />
+    case 'settings': return <SettingsModal isOpen={true} onClose={() => window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'dashboard' }))} />
     default: return <DashboardView status={status} vaultFiles={vaultFiles} />
   }
 }
@@ -440,8 +441,9 @@ function PowerStat({ label, value, delta, color, icon }: any) {
   )
 }
 
-function ProfileView() {
-  const [profile, setProfile] = useState({
+function ProfileView({ vaultFiles = [] }: { vaultFiles?: any[] }) {
+  const agentCount = vaultFiles.filter((f: any) => f.name.endsWith('.yaml')).length
+  const [profile] = useState({
     name: 'Architect Senior',
     role: 'CEO & Lead Architect',
     email: 'karc@architect-build.ai',
@@ -496,9 +498,9 @@ function ProfileView() {
             <div className="glass-card bg-zinc-900 text-white p-8 space-y-6 border-none shadow-2xl">
                <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Métricas de Usuario</h3>
                <div className="space-y-4 text-emerald-400">
-                  <MetricSmall label="Agentes Creados" value="12" color="blue" />
-                  <MetricSmall label="Ventas Totales" value="$42,400" color="emerald" />
-                  <MetricSmall label="Uptime Mensual" value="99.9%" color="blue" />
+                  <MetricSmall label="Agentes Creados" value={agentCount.toString()} color="blue" />
+                  <MetricSmall label="Ventas Totales" value={agentCount > 0 ? "Activando..." : "$0.00"} color="emerald" />
+                  <MetricSmall label="Uptime Mensual" value={agentCount > 0 ? "99.9%" : "---"} color="blue" />
                </div>
             </div>
 
