@@ -23,7 +23,7 @@ import {
   Settings,
   Lock
 } from 'lucide-react'
-import { getApiStatus, getVaultFiles, saveConfig } from './api'
+import { getApiStatus, getVaultFiles, saveConfig, generateAgentProposal } from './api'
 import { getGithubWorkflows, pushFileToGithub } from './github'
 
 import { useView } from './context'
@@ -322,9 +322,14 @@ function SecurityView() {
             help="El 'Cerebro' de tus agentes. Proporciona la capacidad de razonamiento y procesamiento de lenguaje."
           />
           <SecretInput 
-            label="WhatsApp Token (Whapi.cloud)" 
+            label="Whapi Token (Prototipo QR)" 
             value="********************************" 
-            help="Proveedor externo de WhatsApp. Nota: Este servicio tiene un coste recurrente por parte de Whapi."
+            help="Conexión rápida mediante emulación de dispositivo para pruebas inmediatas."
+          />
+          <SecretInput 
+            label="YCloud API Key (Coexistencia)" 
+            value="********************************" 
+            help="Conexión oficial de Meta. Permite usar la App móvil y el Bot simultáneamente."
           />
         </div>
 
@@ -336,7 +341,7 @@ function SecurityView() {
           
           <div className="space-y-6">
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Para desplegar agentes sin costes de suscripción, utiliza la API Oficial de Meta. Las primeras 1,000 conversaciones/mes son GRATUITAS para la empresa si son iniciadas por el usuario.
+              Para desplegar agentes sin costes de suscripción, utiliza la API Oficial de Meta. Las primeras 1,000 conversaciones/mes son GRATUITAS si son iniciadas por el usuario.
             </p>
 
             <div className="space-y-4">
@@ -599,150 +604,213 @@ function AgentStatusCard({ name, status, type }: { name: string, status: 'runnin
 /* SECCIÓN: CONSTRUCTOR DE AGENTES (PROTOCOLO DE VIDA)                        */
 /* -------------------------------------------------------------------------- */
 function AgentCreator() {
-  const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({
-    name: "",
-    type: "restaurante",
-    hours: "9:00 - 18:00",
-    location: "",
-    prompt: "Eres un asistente virtual de alta gama...",
-    wa_token: "",
-    wa_phone: ""
+  const [step, setStep] = useState(0)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [interview, setInterview] = useState({
+    name: '',
+    company: '',
+    web: '',
+    goals: '',
+    tone: 'Profesional'
   })
-  const [saving, setSaving] = useState(false)
-  const [done, setDone] = useState(false)
+  const [proposal, setProposal] = useState<any>(null)
 
-  const handleContinue = async () => {
-    if (step < 4) {
-      setStep(step + 1)
-      return
-    }
-    
-    setSaving(true)
-    
-    // 1. Guardado Local (Legacy Backup)
-    await saveConfig("business", formData)
-    
-    // 2. Persistencia Cloud-Native (GitHub API)
-    const businessYaml = `name: ${formData.name}\ntype: ${formData.type}\nlocation: ${formData.location}`
-    const promptsYaml = `system_prompt: ${formData.prompt}\nwhatsapp_token: ${formData.wa_token}`
-    
-    await Promise.all([
-      pushFileToGithub(`config/business.yaml`, businessYaml, `Update business config for ${formData.name}`),
-      pushFileToGithub(`config/prompts.yaml`, promptsYaml, `Update prompts for ${formData.name}`)
-    ])
-    
-    setSaving(false)
-    setDone(true)
+  const nextStep = () => setStep(s => s + 1)
+  
+  const handleGenerate = async () => {
+    setIsGenerating(true)
+    const res = await generateAgentProposal(interview)
+    setProposal(res)
+    setIsGenerating(false)
+    nextStep()
+  }
+
+  const handleDeploy = async () => {
+    const filename = `agents/${interview.name.toLowerCase().replace(/\s+/g, '_')}.yaml`
+    await pushFileToGithub(filename, proposal.yaml, "Inyectando nuevo Agente Autónomo")
+    window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'deployments' }))
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-      <div className="lg:col-span-4 space-y-6">
-        <div className="glass-card p-8 space-y-4 bg-zinc-900 text-white">
-          <ShieldCheck size={32} className="text-blue-500" />
-          <h2 className="text-xl font-bold font-display tracking-tight">Protocolo de Vida v3</h2>
-          <p className="text-sm text-zinc-400 leading-relaxed font-medium">Inyectar inteligencia autónoma requiere precisión. Sigue el flujo nuclear para garantizar la estabilidad del núcleo.</p>
-          <div className="space-y-4 pt-4 border-t border-zinc-800">
-             <StepLabel active={step === 1} number={1} label="Identidad Nuclear" />
-             <StepLabel active={step === 2} number={2} label="Configuración de Motor" />
-             <StepLabel active={step === 3} number={3} label="Inyección de Conocimiento" />
-             <StepLabel active={step === 4} number={4} label="Activación WhatsApp" />
-          </div>
-        </div>
+    <div className="max-w-4xl mx-auto space-y-10 animate-in slide-in-from-bottom-8 duration-700">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-black text-zinc-900 tracking-tighter sm:text-5xl">Arquitecto de Agentes</h1>
+        <p className="text-zinc-400 font-medium uppercase tracking-widest text-xs">Fábrica de Inteligencia Autónoma</p>
       </div>
 
-      <div className="lg:col-span-8 glass-card p-10 bg-white min-h-[450px] flex flex-col justify-between">
-        <div className="max-w-xl w-full">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">Nombre del Agente / Negocio</label>
-                  <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} placeholder="e.g. Sales Architect Prime" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">Tipo de Entidad</label>
-                  <select value={formData.type} onChange={(e) => setFormData({...formData, type: e.target.value})} className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none" >
-                    <option value="restaurante">Restaurante / Cafetería</option>
-                    <option value="clinica">Clínica / Salud</option>
-                    <option value="tienda">E-commerce / Tienda</option>
-                    <option value="saas">SaaS / Tecnología</option>
-                  </select>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 2 && (
-              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
-                <div className="space-y-2 text-center py-10">
-                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-100 ring-4 ring-blue-50">
-                    <Cpu size={32} />
-                  </div>
-                  <h3 className="text-lg font-bold">Motor Gemini 1.5 Pro Detectado</h3>
-                  <p className="text-xs text-zinc-400 max-w-xs mx-auto">Tu agente usará el núcleo de procesamiento más avanzado disponible en la Architect Build.</p>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">Prompt de Comportamiento (Personality)</label>
-                  <textarea 
-                    rows={6} 
-                    value={formData.prompt} 
-                    onChange={(e) => setFormData({...formData, prompt: e.target.value})}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono text-[12px]" 
-                  />
-                  <p className="text-[10px] text-zinc-400 italic">Define pautas claras: tono, prohibiciones y objetivos del agente.</p>
-                </div>
-              </motion.div>
-            )}
-
-            {step === 4 && (
-              <motion.div key="step4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-10">
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">WhatsApp Access Token</label>
-                    <input type="password" value={formData.wa_token} onChange={(e) => setFormData({...formData, wa_token: e.target.value})} placeholder="waba_v1_****************" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">Phone ID / Number</label>
-                    <input type="text" value={formData.wa_phone} onChange={(e) => setFormData({...formData, wa_phone: e.target.value})} placeholder="+34 600 000 000" className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-            
-            {done && (
-               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center space-y-4 py-20 text-center">
-                  <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center border border-emerald-100 shadow-xl shadow-emerald-500/10">
-                    <CheckCircle2 size={40} />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-bold tracking-tight">Agente Sincronizado con Éxito</h3>
-                    <p className="text-sm text-zinc-500 max-w-xs uppercase tracking-tight font-black">Tu agente ya vive en la nube y está en proceso de despliegue GitHub.</p>
-                  </div>
-                  <button onClick={() => { setStep(1); setDone(false); }} className="text-xs font-bold text-blue-600 hover:underline pt-4">Ir al Monitor de Despliegues</button>
-               </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {!done && (
-          <div className="pt-6 border-t border-zinc-100 flex justify-end items-center gap-4">
-            <button 
-              onClick={handleContinue}
-              disabled={saving}
-              className="nuclear-button !px-10 !py-4 text-sm group disabled:opacity-50 !bg-zinc-900 shadow-xl shadow-zinc-900/20"
-            >
-              {saving ? "Sincronizando..." : step === 4 ? "Activar en la Nube" : "Continuar"} 
-              {!saving && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform ml-2" />}
-            </button>
+      <div className="glass-card bg-white p-1 pb-1 overflow-hidden">
+        {step < 4 && (
+          <div className="flex border-b border-zinc-100">
+            <StepIndicator current={step} index={0} label="Identidad" />
+            <StepIndicator current={step} index={1} label="Contexto" />
+            <StepIndicator current={step} index={2} label="Misión" />
+            <StepIndicator current={step} index={3} label="Personalidad" />
           </div>
         )}
+
+        <div className="p-10">
+          {step === 0 && (
+            <div className="space-y-8 animate-in fade-in zoom-in-95">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Cimentación de Identidad</h2>
+                <p className="text-sm text-zinc-400">¿Cómo se llamará el agente y para qué organización cobrará vida?</p>
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nombre del Agente</label>
+                  <input 
+                    type="text" 
+                    placeholder="ej. SalesMaster Alpha" 
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    value={interview.name}
+                    onChange={e => setInterview({...interview, name: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Nombre de la Empresa</label>
+                  <input 
+                    type="text" 
+                    placeholder="ej. Architect Corp" 
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    value={interview.company}
+                    onChange={e => setInterview({...interview, company: e.target.value})}
+                  />
+                </div>
+              </div>
+              <button onClick={nextStep} disabled={!interview.name} className="nuclear-button w-full shadow-xl shadow-blue-500/20 disabled:opacity-50">Siguiente Fase</button>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-8">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Contexto de Red</h2>
+                <p className="text-sm text-zinc-400">Proporciona el sitio web o redes sociales para alimentar el cerebro del agente.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Sitio Web / URL de Referencia</label>
+                <div className="relative">
+                   <input 
+                    type="text" 
+                    placeholder="https://su-empresa.com" 
+                    className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl pl-12 pr-5 py-4 text-sm font-bold"
+                    value={interview.web}
+                    onChange={e => setInterview({...interview, web: e.target.value})}
+                   />
+                   <Plus size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-300" />
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <button onClick={() => setStep(0)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Volver</button>
+                <button onClick={nextStep} className="nuclear-button flex-1">Analizar Contexto</button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-8">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Misión Nuclear</h2>
+                <p className="text-sm text-zinc-400">¿Qué debe lograr exactamente este agente? (ej. Vender, Triaje, Soporte)</p>
+              </div>
+              <textarea 
+                rows={4}
+                placeholder="ej. El agente debe calificar clientes potenciales para servicios de arquitectura y agendar citas en Calendly."
+                className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                value={interview.goals}
+                onChange={e => setInterview({...interview, goals: e.target.value})}
+              />
+              <div className="flex gap-4">
+                <button onClick={() => setStep(1)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Volver</button>
+                <button onClick={nextStep} disabled={!interview.goals} className="nuclear-button flex-1 disabled:opacity-50">Definir Objetivos</button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-8">
+              <div className="space-y-2">
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Personalidad & Tono</h2>
+                <p className="text-sm text-zinc-400">Elige la frecuencia de comunicación para el agente.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <ToneCard label="Profesional Elite" desc="Preciso, formal y ultra-eficiente." active={interview.tone === 'Profesional'} onClick={() => setInterview({...interview, tone: 'Profesional'})} />
+                <ToneCard label="Empático & Amigable" desc="Cercano, cálido y resolutivo." active={interview.tone === 'Amigable'} onClick={() => setInterview({...interview, tone: 'Amigable'})} />
+                <ToneCard label="Técnico Avanzado" desc="Lenguaje experto y detallado." active={interview.tone === 'Tecnico'} onClick={() => setInterview({...interview, tone: 'Tecnico'})} />
+                <ToneCard label="Comercial Agresivo" desc="Enfocado en el cierre rápido." active={interview.tone === 'Vendedor'} onClick={() => setInterview({...interview, tone: 'Vendedor'})} />
+              </div>
+              <div className="flex gap-4 pt-4 border-t border-zinc-100">
+                <button onClick={() => setStep(2)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Volver</button>
+                <button onClick={handleGenerate} className="nuclear-button flex-1 flex items-center justify-center gap-3">
+                   {isGenerating ? <Activity className="animate-spin" size={18} /> : <Zap size={18} />}
+                   {isGenerating ? "Ingeniería de Prompt en Curso..." : "Inyectar Inteligencia Nuclear"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && proposal && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8">
+               <div className="flex items-center gap-6 p-6 bg-blue-50 border border-blue-100 rounded-3xl">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                     <CheckCircle2 size={32} className="text-blue-600" />
+                  </div>
+                  <div>
+                     <h2 className="text-xl font-bold text-zinc-900">IA Generada Exitosamente</h2>
+                     <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Protocolo de Vida v3.5 Listo</p>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Previsualización de Personalidad</h3>
+                     <div className="p-6 bg-zinc-50 border border-zinc-100 rounded-3xl min-h-[200px] text-sm text-zinc-600 italic leading-relaxed">
+                        "{proposal.systemPrompt.substring(0, 300)}..."
+                     </div>
+                  </div>
+                  <div className="space-y-4">
+                     <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Matriz de Configuración (YAML)</h3>
+                     <pre className="p-6 bg-zinc-900 rounded-3xl text-[11px] text-emerald-400 font-mono overflow-x-auto border border-white/5 shadow-2xl">
+                        {proposal.yaml}
+                     </pre>
+                  </div>
+               </div>
+
+               <div className="flex gap-4">
+                  <button onClick={() => setStep(3)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Ajustar Inteligencia</button>
+                  <button onClick={handleDeploy} className="nuclear-button flex-1 !bg-emerald-600 py-6 text-lg font-black group">
+                     Realizar Despliegue Nuclear
+                     <ArrowRight className="inline-block ml-3 group-hover:translate-x-2 transition-transform" />
+                  </button>
+               </div>
+            </div>
+          )}
+        </div>
       </div>
+    </div>
+  )
+}
+
+function StepIndicator({ current, index, label }: any) {
+  const active = current === index
+  const past = current > index
+  return (
+    <div className={`flex-1 py-4 px-2 border-r last:border-r-0 border-zinc-100 flex items-center justify-center gap-3 transition-colors ${active ? 'bg-zinc-50' : ''}`}>
+       <div className={`w-6 h-6 rounded-full text-[10px] font-bold flex items-center justify-center border ${active ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-400 border-zinc-200'} ${past ? '!bg-blue-600 !border-blue-600 !text-white' : ''}`}>
+          {past ? <CheckCircle2 size={12} /> : index + 1}
+       </div>
+       <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-zinc-900' : 'text-zinc-400'}`}>{label}</span>
+    </div>
+  )
+}
+
+function ToneCard({ label, desc, active, onClick }: any) {
+  return (
+    <div 
+      onClick={onClick}
+      className={`p-6 rounded-3xl border-2 cursor-pointer transition-all ${active ? 'border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-500/10' : 'border-zinc-100 bg-zinc-50 hover:bg-zinc-100'}`}>
+       <h4 className={`text-sm font-bold mb-1 ${active ? 'text-blue-700' : 'text-zinc-900'}`}>{label}</h4>
+       <p className="text-[10px] text-zinc-400 font-medium leading-tight">{desc}</p>
     </div>
   )
 }
