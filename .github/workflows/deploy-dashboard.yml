@@ -26,6 +26,7 @@ jobs:
         run: |
           cd dashboard
           npm install
+          npm install framer-motion # Ensure framer-motion is available for cloud build
 
       - name: Build with Next.js
         run: |

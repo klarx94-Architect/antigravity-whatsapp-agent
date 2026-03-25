@@ -2,6 +2,8 @@
 const nextConfig = {
   output: 'export',
   basePath: '/antigravity-whatsapp-agent',
+  assetPrefix: '/antigravity-whatsapp-agent/',
+  trailingSlash: true,
   images: {
     unoptimized: true,
   },
