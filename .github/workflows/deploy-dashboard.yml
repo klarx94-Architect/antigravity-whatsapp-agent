@@ -1,17 +1,20 @@
-name: Deploy Dashboard to GitHub Pages
+name: Deploy Dashboard (Nuclear Cloud)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - 'dashboard/**'
   workflow_dispatch:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build-and-deploy:
+  build_deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,30 +23,29 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: './dashboard/package-lock.json'
 
       - name: Install dependencies
         run: |
           cd dashboard
-          npm install
-          npm install framer-motion
+          npm ci
 
-      - name: Build with Next.js
+      - name: Build
         run: |
           cd dashboard
           npm run build
-          mv out ../docs
 
-      - name: Inspect Build (Nuclear Check)
+      - name: Fix permissions
         run: |
-          echo "Listing docs contents:"
-          ls -R docs
-          echo "Checking index.html paths:"
-          grep -o 'href="[^"]*"' docs/index.html | head -n 20
-          grep -o 'src="[^"]*"' docs/index.html | head -n 20
+          chmod -R +rwx ./dashboard/out
 
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          folder: docs
-          branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dashboard/out
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
