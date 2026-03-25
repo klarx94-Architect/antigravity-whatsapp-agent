@@ -1,14 +1,19 @@
-/**
- * Architect Build — GitHub API Bridge
- * Esta utilidad permite al dashboard interactuar con el repositorio para persistir configuraciones.
- */
+// Architect Build — GitHub API Bridge
+// Esta utilidad permite al dashboard interactuar con el repositorio para persistir configuraciones.
 
-const GITHUB_TOKEN = process.env.NEXT_PUBLIC_GITHUB_TOKEN || "";
+const getGithubToken = () => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('ARCHITECT_GH_TOKEN') || process.env.NEXT_PUBLIC_GITHUB_TOKEN || "";
+  }
+  return process.env.NEXT_PUBLIC_GITHUB_TOKEN || "";
+};
+
 const OWNER = "klarx94-Architect";
 const REPO = "antigravity-whatsapp-agent";
 
 export async function pushFileToGithub(path: string, content: string, message: string) {
-  if (!GITHUB_TOKEN) {
+  const token = getGithubToken();
+  if (!token) {
     console.warn("GitHub Token no configurado. Operación en modo offline.");
     return { error: true, message: "Token de GitHub no configurado" };
   }
@@ -16,7 +21,7 @@ export async function pushFileToGithub(path: string, content: string, message: s
   try {
     // 1. Obtener el SHA del archivo si ya existe
     const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+      headers: { Authorization: `token ${token}` }
     });
     
     let sha = "";
@@ -29,7 +34,7 @@ export async function pushFileToGithub(path: string, content: string, message: s
     const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`, {
       method: "PUT",
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        Authorization: `token ${token}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -48,9 +53,12 @@ export async function pushFileToGithub(path: string, content: string, message: s
 }
 
 export async function getGithubWorkflows() {
+  const token = getGithubToken();
+  if (!token) return [];
+
   try {
     const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/runs`, {
-      headers: { Authorization: `token ${GITHUB_TOKEN}` }
+      headers: { Authorization: `token ${token}` }
     });
     if (!res.ok) return [];
     const data = await res.json();

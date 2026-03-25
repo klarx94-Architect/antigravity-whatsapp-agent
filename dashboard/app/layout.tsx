@@ -22,18 +22,30 @@ import {
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
+import { ViewProvider, useView } from './context'
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [activeView, setActiveView] = useState('dashboard')
-
   return (
     <html lang="es" className={`${inter.variable} ${outfit.variable}`}>
-      <body className="flex h-screen bg-[#FCFCFC] text-[#09090B] antialiased overflow-hidden font-sans">
-        
+       <body className="antialiased overflow-hidden">
+          <ViewProvider>
+             <DashboardShell>{children}</DashboardShell>
+          </ViewProvider>
+       </body>
+    </html>
+  )
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { activeView, setActiveView } = useView()
+
+  return (
+    <div className="flex h-screen bg-[#FCFCFC] text-[#09090B] font-sans">
         {/* Minimal Sidebar */}
         <motion.aside 
           initial={false}
@@ -74,21 +86,21 @@ export default function RootLayout({
               label="Dashboard" 
               active={activeView === 'dashboard'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('dashboard')}
+              onClick={() => setActiveView('dashboard' as any)}
             />
             <NavItem 
               icon={<Rocket size={18} />} 
               label="Agent Builder" 
               active={activeView === 'builder'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('builder')}
+              onClick={() => setActiveView('builder' as any)}
             />
             <NavItem 
               icon={<Layers size={18} />} 
               label="Deployments" 
               active={activeView === 'deployments'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('deployments')}
+              onClick={() => setActiveView('deployments' as any)}
             />
             
             <div className="pt-4 pb-2 px-3">
@@ -101,14 +113,14 @@ export default function RootLayout({
               label="Infrastructure" 
               active={activeView === 'infrastructure'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('infrastructure')}
+              onClick={() => setActiveView('infrastructure' as any)}
             />
             <NavItem 
               icon={<Shield size={18} />} 
               label="Security" 
               active={activeView === 'security'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('security')}
+              onClick={() => setActiveView('security' as any)}
             />
           </div>
 
@@ -118,7 +130,7 @@ export default function RootLayout({
               label="Settings" 
               active={activeView === 'settings'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('settings')}
+              onClick={() => setActiveView('settings' as any)}
             />
             <button 
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -163,19 +175,12 @@ export default function RootLayout({
                 transition={{ duration: 0.3 }}
                 className="max-w-7xl mx-auto h-full"
               >
-                {/* Repasamos activeView como prop a children de forma segura */}
-                {React.Children.map(children, child => {
-                  if (React.isValidElement(child)) {
-                    return React.cloneElement(child, { activeView } as any);
-                  }
-                  return child;
-                })}
+                {children}
               </motion.div>
             </AnimatePresence>
           </main>
         </div>
-      </body>
-    </html>
+    </div>
   )
 }
 

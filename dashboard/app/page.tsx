@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Zap, 
   Plus, 
@@ -19,33 +19,51 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
-  Layers
+  Layers,
+  Settings,
+  Lock
 } from 'lucide-react'
 import { getApiStatus, getVaultFiles, saveConfig } from './api'
 import { getGithubWorkflows, pushFileToGithub } from './github'
 
-export default function HomePage({ activeView = 'dashboard' }: { activeView?: string }) {
+import { useView } from './context'
+
+export default function HomePage() {
+  const { activeView } = useView()
   const [systemStatus, setSystemStatus] = useState<any>(null)
   const [vaultFiles, setVaultFiles] = useState<any[]>([])
   const [githubRuns, setGithubRuns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
 
   useEffect(() => {
+    // Auth Check
+    const session = localStorage.getItem('ARCHITECT_SESSION')
+    setIsAuthorized(session === 'true')
+
     async function init() {
-      const [status, files, runs] = await Promise.all([
-        getApiStatus(),
-        getVaultFiles(),
-        getGithubWorkflows()
-      ])
-      setSystemStatus(status)
-      setVaultFiles(files)
-      setGithubRuns(runs)
+      try {
+        const [status, files, runs] = await Promise.all([
+          getApiStatus(),
+          getVaultFiles(),
+          getGithubWorkflows()
+        ])
+        setSystemStatus(status)
+        setVaultFiles(files)
+        setGithubRuns(runs)
+      } catch (e) { console.error(e) }
       setLoading(false)
     }
     init()
     const interval = setInterval(init, 15000)
     return () => clearInterval(interval)
   }, [])
+
+  if (isAuthorized === null) return <div className="h-screen bg-white flex items-center justify-center font-black animate-pulse">BOOTING ARCHITECT BUILD...</div>
+  
+  if (!isAuthorized) {
+    return <LoginShield onAuthorize={() => setIsAuthorized(true)} />
+  }
 
   return (
     <div className="space-y-8 pb-20">
@@ -54,7 +72,7 @@ export default function HomePage({ activeView = 'dashboard' }: { activeView?: st
         <div className="flex items-center gap-2 text-[11px] font-medium text-zinc-400 uppercase tracking-widest">
           <span>Architect Build</span>
           <ChevronRight size={10} />
-          <span className="text-zinc-900 capitalize">{activeView}</span>
+          <span className="text-zinc-900 capitalize italic font-bold">{activeView}</span>
         </div>
         
         <div className="flex items-center gap-3">
@@ -70,36 +88,112 @@ export default function HomePage({ activeView = 'dashboard' }: { activeView?: st
             </div>
           )}
           
-          {process.env.NEXT_PUBLIC_GITHUB_TOKEN ? (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-              <Layers size={10} />
-              GH CLOUD CONNECTED
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 bg-zinc-50 px-3 py-1 rounded-full border border-zinc-100">
-              <Layers size={10} />
-              GH DISCONNECTED
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100 uppercase tracking-tighter">
+            <Layers size={10} />
+            GitHub Native Persistence
+          </div>
         </div>
       </div>
 
       <AnimatePresence mode="wait">
         <motion.div
           key={activeView}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.3 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         >
           {activeTabSelector(activeView, systemStatus, githubRuns, vaultFiles)}
         </motion.div>
       </AnimatePresence>
+
+      <SettingsModal 
+        isOpen={activeView === 'settings'} 
+        onClose={() => {
+          // Si el usuario cierra el modal, volvemos al dashboard
+          // Nota: Esto asume que el cambio de estado se propaga al layout.
+          // Para una mejor UX, dispararemos un evento custom o modificaremos el prop si es posible.
+          window.dispatchEvent(new CustomEvent('architect-view-change', { detail: 'dashboard' }))
+        }} 
+      />
+    </div>
+  )
+}
+
+function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
+  const [user, setUser] = useState('')
+  const [pass, setPass] = useState('')
+  const [error, setError] = useState(false)
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (user === 'architect' && pass === 'build2026') {
+      localStorage.setItem('ARCHITECT_SESSION', 'true')
+      onAuthorize()
+    } else {
+      setError(true)
+      setTimeout(() => setError(false), 2000)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-white z-[100] flex items-center justify-center p-6">
+      <div className="w-full max-w-md space-y-12">
+        <div className="space-y-4 text-center">
+          <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/20">
+             <Zap className="text-white fill-current" />
+          </div>
+          <div className="space-y-1">
+             <h1 className="text-2xl font-bold font-display tracking-tight text-zinc-900">Architect Build v3.5</h1>
+             <p className="text-xs text-zinc-400 uppercase tracking-widest font-black">Secure Administration Hub</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest pl-1">Identidad de Acceso</label>
+              <input 
+                type="text" 
+                value={user}
+                onChange={(e) => setUser(e.target.value)}
+                placeholder="Manager ID"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest pl-1">Código Nuclear</label>
+              <input 
+                type="password" 
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl px-5 py-4 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            className="w-full nuclear-button !py-5 !bg-zinc-900 !text-white text-sm tracking-tight shadow-xl shadow-zinc-900/20 group uppercase font-black"
+          >
+            Sincronizar Acceso 
+            <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+          </button>
+          
+          {error && (
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center text-[11px] font-bold text-red-500 uppercase tracking-tight">Acceso Denegado. Credenciales Inválidas.</motion.p>
+          )}
+        </form>
+
+        <p className="text-[10px] text-center text-zinc-400 font-medium">© 2026 Architect Build — Industrial Automation Unit</p>
+      </div>
     </div>
   )
 }
 
 function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFiles: any[]) {
+  console.log("Switching to view:", view); // Debug navigation
   switch (view) {
     case 'dashboard': return <OperationsMonitor status={status} />
     case 'builder': return <AgentCreator />
@@ -107,7 +201,7 @@ function activeTabSelector(view: string, status: any, githubRuns: any[], vaultFi
     case 'deployments': return <DeploymentsView runs={githubRuns} />
     case 'infrastructure': return <InfrastructureView status={status} />
     case 'security': return <SecurityView />
-    case 'settings': return <SettingsView />
+    case 'settings': return null // Ahora es un modal
     default: return <OperationsMonitor status={status} />
   }
 }
@@ -235,80 +329,45 @@ function SecretInput({ label, value }: any) {
   )
 }
 
-function SettingsView() {
-  return (
-    <div className="space-y-8">
-      <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Global Settings</h2>
-      <div className="glass-card p-10 bg-white space-y-8">
-        <div className="flex items-center justify-between py-4 border-b border-zinc-100">
-          <div>
-            <h4 className="text-sm font-bold text-zinc-900">Industrial Dark Mode</h4>
-            <p className="text-xs text-zinc-400">Activa la interfaz de alto contraste para entornos de baja luz.</p>
-          </div>
-          <div className="w-10 h-5 bg-zinc-200 rounded-full relative cursor-pointer">
-            <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full transition-all" />
-          </div>
-        </div>
-        <div className="flex items-center justify-between py-4">
-          <div>
-            <h4 className="text-sm font-bold text-zinc-900">Auto-commit a GitHub</h4>
-            <p className="text-xs text-zinc-400">Guarda automáticamente cada cambio en la configuración como un commit.</p>
-          </div>
-          <div className="w-10 h-5 bg-blue-600 rounded-full relative cursor-pointer shadow-inner">
-            <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function TabButton({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`
-        px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200
-        ${active ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}
-      `}
-    >
-      {label}
-    </button>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-/* SECCIÓN: MONITOR DE OPERACIONES                                            */
-/* -------------------------------------------------------------------------- */
 function OperationsMonitor({ status }: any) {
   const isOnline = status?.status === 'online'
 
   return (
-    <div className="space-y-10">
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MiniStat label="System Active" value={isOnline ? "YES" : "NO"} status={isOnline ? "Optimal" : "Offline"} color={isOnline ? "emerald" : "red"} />
-        <MiniStat label="Engine Type" value={status?.engine || "Gemini 1.5"} delta="Nuclear" />
-        <MiniStat label="API Connection" value={status?.api_connected ? "SECURE" : "MISSING"} status={status?.api_connected ? "Stable" : "Critical"} color={status?.api_connected ? "emerald" : "red"} />
-        <MiniStat label="Hub Version" value={status?.version || "2.5.0"} delta="Stable" />
+    <div className="space-y-12 animate-in fade-in duration-700">
+      {/* Power Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <PowerStat label="Total AI Operations" value="1,248" delta="+12%" color="blue" icon={<Zap size={20} />} />
+        <PowerStat label="Avg Engine Latency" value="342ms" delta="-15ms" color="emerald" icon={<Cpu size={20} />} />
+        <PowerStat label="Active Cloud Agents" value="4" delta="Stable" color="blue" icon={<Layers size={20} />} />
+        <PowerStat label="Architect Value" value="$480.00" delta="Projected" color="indigo" icon={<Database size={20} />} />
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-sm font-bold text-zinc-900 px-1">Línea de Producción Activada</h2>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between px-1">
+          <h2 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Línea de Producción Aktiva</h2>
+          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
+             <Activity size={12} className="animate-pulse text-blue-500" />
+             REAL-TIME FEED
+          </div>
+        </div>
+
         {!isOnline && (
-          <div className="p-8 border-2 border-dashed border-zinc-200 rounded-3xl flex flex-col items-center justify-center text-center space-y-4 bg-zinc-50/50">
-             <AlertCircle size={32} className="text-zinc-300" />
-             <div className="space-y-1">
-                <h3 className="text-sm font-bold text-zinc-900">Backend Desconectado</h3>
-                <p className="text-xs text-zinc-400 font-medium">Ejecuta `cd agent && python main.py` para activar la inteligencia del hub.</p>
+          <div className="p-12 border-2 border-dashed border-zinc-200 rounded-[40px] flex flex-col items-center justify-center text-center space-y-6 bg-zinc-50/30 backdrop-blur-sm">
+             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-zinc-100">
+                <AlertCircle size={32} className="text-zinc-300" />
+             </div>
+             <div className="space-y-2">
+                <h3 className="text-base font-bold text-zinc-900 tracking-tight">Hub de Inteligencia Desconectado</h3>
+                <p className="text-xs text-zinc-400 font-medium max-w-xs leading-relaxed uppercase tracking-tighter">Inicia el motor local (`cd agent && python main.py`) para sincronizar la red neuronal.</p>
              </div>
           </div>
         )}
+
         {isOnline && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            <AgentStatusCard name="Gallo Reserva Bot" status="running" type="Sales Intelligence" />
-            <AgentStatusCard name="Electrofox Tech" status="running" type="L2 Support" />
-            <AgentStatusCard name="Architect Alpha" status="paused" type="Diagnostics" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <AgentStatusCard name="Sales Intelligence Alpha" status="running" type="Inbound Bot" />
+            <AgentStatusCard name="Technical Support V2" status="running" type="L2 Triage" />
+            <AgentStatusCard name="Marketing Automation" status="paused" type="Outbound Blast" />
           </div>
         )}
       </div>
@@ -316,21 +375,107 @@ function OperationsMonitor({ status }: any) {
   )
 }
 
-function MiniStat({ label, value, delta, status, color = "blue" }: any) {
-  const colorClasses = {
-    blue: "text-blue-600 bg-blue-50",
-    emerald: "text-emerald-600 bg-emerald-50",
-    red: "text-red-600 bg-red-50"
-  }[color as keyof typeof colorClasses] || "text-blue-600 bg-blue-50"
+function PowerStat({ label, value, delta, color, icon }: any) {
+  const colors = {
+    blue: "text-blue-600 bg-blue-50 border-blue-100",
+    emerald: "text-emerald-600 bg-emerald-50 border-emerald-100",
+    indigo: "text-indigo-600 bg-indigo-50 border-indigo-100"
+  }[color as 'blue'|'emerald'|'indigo']
 
   return (
-    <div className="glass-card p-5 space-y-2">
-      <span className="premium-label text-[10px]">{label}</span>
-      <div className="flex items-end justify-between">
-        <h4 className="text-xl font-bold text-zinc-900">{value}</h4>
-        {delta && <span className={`text-[10px] font-black ${colorClasses} px-2 py-0.5 rounded-full`}>{delta}</span>}
-        {status && <span className={`text-[10px] font-black ${colorClasses} px-2 py-0.5 rounded-full`}>{status}</span>}
+    <div className="glass-card p-7 space-y-4 hover:border-blue-200 transition-colors group">
+      <div className="flex justify-between items-start">
+        <div className={`p-3 rounded-2xl border ${colors}`}>
+          {icon}
+        </div>
+        <span className={`text-[10px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-full border ${colors}`}>
+          {delta}
+        </span>
       </div>
+      <div className="space-y-1">
+        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none">{label}</p>
+        <h4 className="text-2xl font-bold text-zinc-900 tracking-tighter font-display">{value}</h4>
+      </div>
+    </div>
+  )
+}
+
+function SettingsModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-md animate-in fade-in duration-300">
+       <motion.div 
+         initial={{ scale: 0.9, opacity: 0, y: 20 }}
+         animate={{ scale: 1, opacity: 1, y: 0 }}
+         className="w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+       >
+          <div className="p-8 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50">
+             <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center">
+                   <Settings className="text-white w-5 h-5" />
+                </div>
+                <div>
+                   <h2 className="text-lg font-bold text-zinc-900 tracking-tight leading-none">Global System Config</h2>
+                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mt-1">v3.5 Industrial Node</p>
+                </div>
+             </div>
+             <button onClick={onClose} className="p-2 hover:bg-zinc-200 rounded-full transition-colors text-zinc-400">
+                <Plus className="rotate-45" size={24} />
+             </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-10 space-y-12 no-scrollbar">
+             <section className="space-y-6">
+                <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest flex items-center gap-3">
+                   <Zap size={14} className="text-blue-500" /> Identity & Branding
+                </h3>
+                <div className="grid grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Platform Name</label>
+                      <input type="text" defaultValue="Architect Build" className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold" />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Interface Locale</label>
+                      <select className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3 text-sm font-bold appearance-none">
+                         <option>Spanish (Global)</option>
+                         <option>English (Direct)</option>
+                      </select>
+                   </div>
+                </div>
+             </section>
+
+             <section className="space-y-6">
+                <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest flex items-center gap-3">
+                   <Activity size={14} className="text-blue-500" /> Operational Features
+                </h3>
+                <div className="space-y-4">
+                   <ToggleRow label="Real-time Synchronization" description="Push changes to GitHub instantly on edit." active />
+                   <ToggleRow label="Advanced Debug Mode" description="Show raw LLM reasoning logs in the builder." />
+                   <ToggleRow label="Auto-Scaling Infrastructure" description="Provision nodes based on traffic spikes." active />
+                </div>
+             </section>
+          </div>
+
+          <div className="p-8 border-t border-zinc-100 flex justify-end gap-3 bg-zinc-50/50">
+             <button onClick={onClose} className="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors">Cancel</button>
+             <button onClick={onClose} className="nuclear-button !bg-zinc-900 !px-8 text-sm !py-3 transform active:scale-95 transition-all">Apply Configuration</button>
+          </div>
+       </motion.div>
+    </div>
+  )
+}
+
+function ToggleRow({ label, description, active = false }: any) {
+  return (
+    <div className="flex items-center justify-between py-2">
+       <div>
+          <h4 className="text-sm font-bold text-zinc-900">{label}</h4>
+          <p className="text-[11px] text-zinc-400 font-medium">{description}</p>
+       </div>
+       <div className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors duration-300 ${active ? 'bg-blue-600' : 'bg-zinc-200'}`}>
+          <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 ${active ? 'right-1' : 'left-1'}`} />
+       </div>
     </div>
   )
 }
