@@ -28,6 +28,10 @@ jobs:
           cd dashboard
           npm run build
 
+      - name: Debug Output
+        run: |
+          ls -R dashboard
+
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
