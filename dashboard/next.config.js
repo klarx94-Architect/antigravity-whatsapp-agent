@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
+const isProd = process.env.NODE_ENV === 'production';
+
 const nextConfig = {
   output: 'export',
-  basePath: '/antigravity-whatsapp-agent',
-  assetPrefix: 'https://klarx94-Architect.github.io/antigravity-whatsapp-agent/',
+  basePath: isProd ? '/antigravity-whatsapp-agent' : '',
+  assetPrefix: isProd ? 'https://klarx94-Architect.github.io/antigravity-whatsapp-agent/' : '',
   trailingSlash: true,
   images: {
     unoptimized: true,

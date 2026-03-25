@@ -1,7 +1,7 @@
 # ⚡ Antigravity WhatsApp Agent — Mother Repository
-### Engine + Dashboard Unified Architecture
+### Engine + Dashboard Unified Architecture (Nuclear Standard)
 
-Bienvenido al repositorio maestro del ecosistema **Antigravity WhatsApp Agent**. Este repositorio contiene tanto el motor de IA como el panel de gestión visual.
+Bienvenido al repositorio maestro del ecosistema **Antigravity WhatsApp Agent**. Este repositorio concentra la inteligencia y la gestión en un solo Hub bajo los estándares de la **Architect Energy Suite**.
 
 ---
 
@@ -9,24 +9,22 @@ Bienvenido al repositorio maestro del ecosistema **Antigravity WhatsApp Agent**.
 - **[`agent/`](agent/)**: Núcleo del Agente (FastAPI + Gemini 1.5 Pro).
 - **[`dashboard/`](dashboard/)**: Panel de control visual "Robo-Factory" (Next.js + Tailwind).
 - **[`config/`](config/)**: Configuraciones de negocio y prompts.
-- **[`knowledge/`](knowledge/)**: Base de conocimientos del agente.
+- **[`knowledge/`](knowledge/)**: Base de conocimientos y [protocolos](knowledge/protocols.md).
 
 ---
 
-## 🚀 Despliegue Híbrido
-
-### 1. Motor (Backend)
-Despliega el motor en **Railway** usando el `Dockerfile` incluido para tener operación 24/7.
-
-### 2. Dashboard (Frontend)
-Despliega la carpeta `dashboard/` en **Vercel** para obtener tu URL de gestión en tiempo real.
+## 🛡️ Protocolos de Operación
+Este repositorio sigue estrictamente:
+1. **[Protocolo Nuclear](knowledge/protocols.md#1-protocolo-nuclear-estética-y-rendimiento)**: Excelencia visual y eficiencia de recursos.
+2. **[Protocolo Punto 33](knowledge/protocols.md#2-protocolo-punto-33-verificación-cli)**: Verificación total vía terminal post-crash.
 
 ---
 
-## 🛠️ Inicio Rápido
-1. `bash start.sh` para preparar el entorno.
+## 🚀 Inicio Rápido
+1. `bash start.sh` para preparar el entorno virtual y dependencias.
 2. Configura tu `.env` con la `GEMINI_API_KEY`.
-3. Entra en `dashboard/` y ejecuta `npm install && npm run dev` para ver el panel localmente.
+3. **Frontend:** `cd dashboard && npm install && npm run dev`
+4. **Backend:** `cd agent && python main.py`
 
 ---
-*Antigravity — Nuclear Standard*
+*Antigravity — High-Fidelity Intelligence Hub*

@@ -3,40 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: #FDFDFD;
-  --metallic-50: #F8FAFC;
-  --metallic-100: #F1F5F9;
-  --metallic-200: #E2E8F0;
-  --metallic-300: #CBD5E1;
-  --robotic-900: #0F172A;
-  --robot-glow: #3B82F6;
+  --background: #F8F9FA;
+  --primary: #0F172A;
+  --accent: #3B82F6;
 }
 
 @layer base {
   body {
-    @apply bg-background text-robotic-900 antialiased font-sans;
+    @apply bg-[var(--background)] text-[var(--primary)] antialiased font-sans selection:bg-accent/20;
   }
 }
 
 @layer components {
-  .metallic-card {
-    @apply bg-white border border-metallic-200 shadow-premium rounded-xl overflow-hidden transition-all duration-300;
+  .glass-card {
+    @apply bg-white/40 backdrop-blur-xl border border-white/20 shadow-glass rounded-3xl transition-all duration-500;
   }
   
-  .metallic-card:hover {
-    @apply border-metallic-300 shadow-robotic translate-y-[-2px];
+  .glass-card:hover {
+    @apply bg-white/60 border-white/40 shadow-nuclear translate-y-[-4px];
   }
   
-  .robot-glow {
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  .nuclear-button {
+    @apply bg-primary text-white px-8 py-3 rounded-2xl font-bold tracking-wide transition-all duration-500 
+           hover:shadow-nuclear active:scale-95 flex items-center gap-3 overflow-hidden relative;
   }
-  
-  .robot-button {
-    @apply bg-robotic-900 text-white px-4 py-2 rounded-lg font-medium transition-all hover:bg-robotic-950 active:scale-95 flex items-center gap-2;
+
+  .nuclear-button::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] transition-transform duration-1000;
+  }
+
+  .nuclear-button:hover::after {
+    @apply translate-x-[100%];
+  }
+
+  .premium-label {
+    @apply text-[10px] uppercase font-black tracking-[0.4em] text-slate-400;
   }
 }
 
-/* Custom Hide Scrollbar but keep functionality */
+/* Custom Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
