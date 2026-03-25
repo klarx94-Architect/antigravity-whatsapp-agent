@@ -372,6 +372,13 @@ function DashboardView({ status, vaultFiles = [] }: any) {
   const agents = vaultFiles.filter((f: any) => f.name.endsWith('.yaml'))
   const agentCount = agents.length
   const { developerMode } = useSettings()
+  const [currentTime, setCurrentTime] = useState('')
+
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleTimeString())
+    const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
@@ -392,9 +399,9 @@ function DashboardView({ status, vaultFiles = [] }: any) {
                 </div>
              </div>
              <div className="space-y-2 text-zinc-400">
-                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> API_STATUS: {isOnline ? 'ONLINE' : 'OFFLINE'}</p>
-                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> VAULT_SYNC: {agentCount} AGENTS_LOADED</p>
-                <p><span className="text-zinc-600">[{new Date().toLocaleTimeString()}]</span> SESSION: VALIDATED_ARCHITECT</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> API_STATUS: {isOnline ? 'ONLINE' : 'OFFLINE'}</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> VAULT_SYNC: {agentCount} AGENTS_LOADED</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> SESSION: VALIDATED_ARCHITECT</p>
                 <p className="text-emerald-500 tracking-tighter animate-pulse">{">>>"} ESCUCHANDO EVENTOS DE META_HUB...</p>
              </div>
           </motion.div>
