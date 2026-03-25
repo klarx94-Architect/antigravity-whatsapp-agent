@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FDFDFD;
+  --metallic-50: #F8FAFC;
+  --metallic-100: #F1F5F9;
+  --metallic-200: #E2E8F0;
+  --metallic-300: #CBD5E1;
+  --robotic-900: #0F172A;
+  --robot-glow: #3B82F6;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-robotic-900 antialiased font-sans;
+  }
+}
+
+@layer components {
+  .metallic-card {
+    @apply bg-white border border-metallic-200 shadow-premium rounded-xl overflow-hidden transition-all duration-300;
+  }
+  
+  .metallic-card:hover {
+    @apply border-metallic-300 shadow-robotic translate-y-[-2px];
+  }
+  
+  .robot-glow {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+  
+  .robot-button {
+    @apply bg-robotic-900 text-white px-4 py-2 rounded-lg font-medium transition-all hover:bg-robotic-950 active:scale-95 flex items-center gap-2;
+  }
+}
+
+/* Custom Hide Scrollbar but keep functionality */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
