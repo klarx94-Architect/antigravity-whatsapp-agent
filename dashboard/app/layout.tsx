@@ -3,7 +3,7 @@
 import './globals.css'
 import { Inter, Outfit } from 'next/font/google'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { 
   LayoutDashboard, 
   Rocket, 
@@ -28,6 +28,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [activeView, setActiveView] = useState('dashboard')
 
   return (
     <html lang="es" className={`${inter.variable} ${outfit.variable}`}>
@@ -51,7 +52,7 @@ export default function RootLayout({
                   className="flex items-center gap-2"
                 >
                   <Zap className="text-blue-600 w-5 h-5 fill-current" />
-                  <span className="font-display font-bold text-sm tracking-tight">Antigravity</span>
+                  <span className="font-display font-bold text-sm tracking-tight">Architect Build</span>
                 </motion.div>
               )}
               {isCollapsed && (
@@ -68,19 +69,57 @@ export default function RootLayout({
           </div>
 
           <div className="flex-1 py-6 px-4 space-y-1">
-            <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" active collapsed={isCollapsed} />
-            <NavItem icon={<Rocket size={18} />} label="Agent Builder" collapsed={isCollapsed} />
-            <NavItem icon={<Layers size={18} />} label="Deployments" collapsed={isCollapsed} />
+            <NavItem 
+              icon={<LayoutDashboard size={18} />} 
+              label="Dashboard" 
+              active={activeView === 'dashboard'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('dashboard')}
+            />
+            <NavItem 
+              icon={<Rocket size={18} />} 
+              label="Agent Builder" 
+              active={activeView === 'builder'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('builder')}
+            />
+            <NavItem 
+              icon={<Layers size={18} />} 
+              label="Deployments" 
+              active={activeView === 'deployments'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('deployments')}
+            />
+            
             <div className="pt-4 pb-2 px-3">
                {!isCollapsed && <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Workspace</span>}
                {isCollapsed && <div className="h-px bg-zinc-100 my-2" />}
             </div>
-            <NavItem icon={<Cpu size={18} />} label="Infrastructure" collapsed={isCollapsed} />
-            <NavItem icon={<Shield size={18} />} label="Security" collapsed={isCollapsed} />
+            
+            <NavItem 
+              icon={<Cpu size={18} />} 
+              label="Infrastructure" 
+              active={activeView === 'infrastructure'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('infrastructure')}
+            />
+            <NavItem 
+              icon={<Shield size={18} />} 
+              label="Security" 
+              active={activeView === 'security'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('security')}
+            />
           </div>
 
           <div className="p-4 border-t border-zinc-100 space-y-1">
-            <NavItem icon={<Settings size={18} />} label="Settings" collapsed={isCollapsed} />
+            <NavItem 
+              icon={<Settings size={18} />} 
+              label="Settings" 
+              active={activeView === 'settings'} 
+              collapsed={isCollapsed} 
+              onClick={() => setActiveView('settings')}
+            />
             <button 
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors"
@@ -117,14 +156,20 @@ export default function RootLayout({
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 no-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div 
-                key="content"
+                key={activeView}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
                 className="max-w-7xl mx-auto h-full"
               >
-                {children}
+                {/* Repasamos activeView como prop a children de forma segura */}
+                {React.Children.map(children, child => {
+                  if (React.isValidElement(child)) {
+                    return React.cloneElement(child, { activeView } as any);
+                  }
+                  return child;
+                })}
               </motion.div>
             </AnimatePresence>
           </main>
@@ -134,10 +179,13 @@ export default function RootLayout({
   )
 }
 
-function NavItem({ icon, label, active = false, collapsed = false }: { icon: any, label: string, active?: boolean, collapsed?: boolean }) {
+function NavItem({ icon, label, active = false, collapsed = false, onClick }: { icon: any, label: string, active?: boolean, collapsed?: boolean, onClick?: () => void }) {
   return (
-    <div className={`
-      sidebar-item ${active ? 'sidebar-item-active' : ''}
+    <div 
+      onClick={onClick}
+      className={`
+      sidebar-item cursor-pointer transition-all duration-200
+      ${active ? 'sidebar-item-active !bg-zinc-900 !text-white' : 'hover:bg-zinc-100'}
       ${collapsed ? 'justify-center px-0' : ''}
     `}>
       <span className="shrink-0">{icon}</span>
@@ -145,7 +193,7 @@ function NavItem({ icon, label, active = false, collapsed = false }: { icon: any
         <motion.span 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="truncate"
+          className="truncate font-bold tracking-tight text-[13px]"
         >
           {label}
         </motion.span>
