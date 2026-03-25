@@ -20,9 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from agent.providers.evolution import EvolutionProvider
+
 # Inicializar componentes
 brain = AgentBrain(api_key=os.getenv("GEMINI_API_KEY", ""))
 memory = AgentMemory()
+evolution = EvolutionProvider()
 
 @app.get("/api/status")
 async def get_status():
@@ -30,8 +33,58 @@ async def get_status():
         "status": "online",
         "engine": "Gemini 1.5 Pro",
         "api_connected": bool(os.getenv("GEMINI_API_KEY")),
-        "version": "2.5.0-nuclear"
+        "version": "3.7.0-evolution"
     }
+
+# --- EVOLUTION API ENDPOINTS ---
+
+@app.get("/api/evolution/instances")
+async def list_instances():
+    return await evolution.get_instances()
+
+@app.post("/api/evolution/create")
+async def create_instance(name: str = Body(..., embed=True)):
+    return await evolution.create_instance(name)
+
+@app.get("/api/evolution/qr/{name}")
+async def get_qr(name: str):
+    return await evolution.get_qr(name)
+
+@app.post("/api/webhook/evolution")
+async def webhook_evolution(data: dict = Body(...)):
+    """Handler para mensajes entrantes de Evolution API"""
+    try:
+        # Extraer datos del mensaje (Evolution API v2 structure)
+        if data.get("event") == "messages.upsert":
+            msg = data.get("data", {}).get("message", {})
+            remote_resid = data.get("data", {}).get("key", {}).get("remoteJid", "")
+            from_me = data.get("data", {}).get("key", {}).get("fromMe", False)
+            
+            if from_me: return {"status": "ignored_self"}
+
+            text = msg.get("conversation") or msg.get("extendedTextMessage", {}).get("text", "")
+            instance = data.get("instance", "default")
+
+            if text and remote_resid:
+                # Procesar con el cerebro
+                history = memory.get_history(remote_resid)
+                response = brain.generate_response(text, history)
+                
+                # Enviar respuesta
+                await evolution.send_message(instance, remote_resid, response)
+                
+                # Actualizar memoria
+                memory.add_message(remote_resid, "user", text)
+                memory.add_message(remote_resid, "model", response)
+                
+                return {"status": "responded", "to": remote_resid}
+        
+        return {"status": "event_ignored"}
+    except Exception as e:
+        print(f"Error en webhook: {e}")
+        return {"error": str(e)}
+
+# --- CORE ENDPOINTS ---
 
 @app.post("/api/chat")
 async def chat(session_id: str = Body(...), message: str = Body(...)):
