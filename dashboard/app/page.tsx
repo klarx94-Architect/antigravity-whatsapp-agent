@@ -38,6 +38,7 @@ import {
 import { pushFileToGithub, getGithubWorkflows } from './github'
 
 import { ViewProvider, useView, useSettings } from './context'
+import { EvolutionBridge } from './components/EvolutionBridge'
 
 export default function HomePage() {
   const { activeView } = useView()
@@ -789,6 +790,7 @@ function AgentCreator() {
   })
   const [proposal, setProposal] = useState<any>(null)
   const [showDossier, setShowDossier] = useState(false)
+  const [isEvolutionConnected, setIsEvolutionConnected] = useState(false)
 
   const nextStep = () => setStep(s => s + 1)
   
@@ -912,16 +914,22 @@ function AgentCreator() {
                 <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Protocolo de Conexión</h2>
                 <p className="text-sm text-zinc-400">¿Cómo se comunicará el agente con el mundo exterior?</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <ConnectionCard 
-                  label="Meta Cloud Hub (YCloud)" 
-                  desc="API Oficial. Permite usar la App móvil + el Bot simultáneamente (Coexistencia)."
+                  label="Meta Cloud (YCloud)" 
+                  desc="API Oficial. Coexistencia App móvil."
                   active={interview.connection === 'YCloud'}
                   onClick={() => setInterview({...interview, connection: 'YCloud'})}
                 />
                 <ConnectionCard 
-                  label="Whapi QR Protocol" 
-                  desc="Conexión rápida vía QR. Prototipado instantáneo para clientes."
+                  label="Evolution API (QR)" 
+                  desc="Motor Gratis (Zero-Cost). Vinculación instantánea."
+                  active={interview.connection === 'Evolution'}
+                  onClick={() => setInterview({...interview, connection: 'Evolution'})}
+                />
+                <ConnectionCard 
+                  label="Whapi Legacy" 
+                  desc="Protocolo QR alternativo."
                   active={interview.connection === 'Whapi'}
                   onClick={() => setInterview({...interview, connection: 'Whapi'})}
                 />
@@ -984,10 +992,20 @@ function AgentCreator() {
 
                <div className="flex gap-4">
                   <button onClick={() => setStep(4)} className="px-8 py-4 text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">Ajustar Inteligencia</button>
-                  <button onClick={handleDeploy} className="nuclear-button flex-1 !bg-emerald-600 py-6 text-lg font-black group">
-                     Realizar Despliegue Nuclear
-                     <ArrowRight className="inline-block ml-3 group-hover:translate-x-2 transition-transform" />
-                  </button>
+                  
+                  {interview.connection === 'Evolution' && !isEvolutionConnected ? (
+                     <div className="flex-1">
+                        <EvolutionBridge 
+                           instanceName={interview.name.toLowerCase().replace(/\s+/g, '_')} 
+                           onConnected={() => setIsEvolutionConnected(true)} 
+                        />
+                     </div>
+                  ) : (
+                     <button onClick={handleDeploy} className="nuclear-button flex-1 !bg-emerald-600 py-6 text-lg font-black group">
+                        {isEvolutionConnected ? 'Activar Protocolo Evolution' : 'Realizar Despliegue Nuclear'}
+                        <ArrowRight className="inline-block ml-3 group-hover:translate-x-2 transition-transform" />
+                     </button>
+                  )}
                </div>
             </div>
           )}
