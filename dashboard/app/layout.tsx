@@ -3,7 +3,7 @@
 import './globals.css'
 import { Inter, Outfit } from 'next/font/google'
 import { motion, AnimatePresence } from 'framer-motion'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   Rocket, 
