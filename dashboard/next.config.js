@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production';
-
 const nextConfig = {
-  trailingSlash: true,
   images: {
     unoptimized: true,
   },
@@ -12,6 +9,7 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  transpilePackages: ['lucide-react'],
 }
 
 module.exports = nextConfig
