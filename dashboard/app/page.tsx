@@ -36,6 +36,7 @@ import {
   generateAgentProposal 
 } from './api'
 import { pushFileToGithub, getGithubWorkflows } from './github'
+import { supabase, getAgents, saveAgent, generateApiKey } from './supabase'
 
 import { ViewProvider, useView, useSettings } from './context'
 import { EvolutionBridge } from './components/EvolutionBridge'
@@ -54,13 +55,13 @@ export default function HomePage() {
 
     async function init() {
       try {
-        const [status, files, runs] = await Promise.all([
+        const [status, agents, runs] = await Promise.all([
           getApiStatus(),
-          getVaultFiles(),
+          getAgents(), // Ahora consultamos Supabase
           getGithubWorkflows()
         ])
         setSystemStatus(status)
-        setVaultFiles(files)
+        setVaultFiles(agents) // Corregido: setVaultFiles en lugar de setAgents
         setGithubRuns(runs)
       } catch (e) { 
         console.error("Error en sincronización de nodo:", e)
@@ -798,6 +799,22 @@ function AgentCreator() {
     setIsGenerating(true)
     const res = await generateAgentProposal(interview)
     setProposal(res)
+    
+    // Guardar en Supabase Automáticamente al generar
+    const newAgent = await saveAgent({
+      name: interview.name,
+      company: interview.company,
+      website_url: interview.web,
+      system_prompt: res.systemPrompt,
+      connection_type: interview.connection,
+      status: 'active'
+    });
+
+    if (newAgent) {
+      const key = await generateApiKey(newAgent.id);
+      console.log("Nueva clave generada:", key);
+    }
+
     setIsGenerating(false)
     nextStep()
   }
