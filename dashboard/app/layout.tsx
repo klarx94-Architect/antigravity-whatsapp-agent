@@ -2,32 +2,26 @@
 
 import './globals.css'
 import { Inter, Outfit } from 'next/font/google'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import React, { useState, useEffect } from 'react'
 import { 
+  Menu, 
   LayoutDashboard, 
-  Rocket, 
-  Layers,
-  Zap, 
-  Menu,
-  ChevronLeft,
+  Layers, 
   Settings, 
-  Info,
-  Shield,
-  Cpu,
-  Search,
-  Bell,
-  User,
-  LogOut,
-  Mail,
-  Briefcase
+  ShieldCheck, 
+  Cpu, 
+  Bell, 
+  User, 
+  Zap 
 } from 'lucide-react'
+
+// Context & API
+import { useView, ViewProvider } from './context'
+import { supabase } from './supabase'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
-
-import { ViewProvider, useView } from './context'
-import { supabase } from './supabase'
 
 export default function RootLayout({
   children,
@@ -46,13 +40,9 @@ export default function RootLayout({
 }
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
   const { activeView, setActiveView, selectedAgentId, setSelectedAgentId } = useView()
   const [agents, setAgents] = useState<any[]>([])
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications] = useState([
-    { id: 1, title: 'Estación de Control Alpha Activa', time: 'Ahora', type: 'success' }
-  ])
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
     async function loadAgents() {
@@ -60,250 +50,101 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       if (data) setAgents(data)
     }
     loadAgents()
-    const interval = setInterval(loadAgents, 10000)
-    return () => clearInterval(interval)
+    const subscription = supabase.channel('agents_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'agents' }, loadAgents).subscribe()
+    return () => { subscription.unsubscribe() }
   }, [])
 
   return (
-    <div className="flex h-screen bg-[#FDFDFD] text-[#09090B] font-sans">
-        {/* Minimal Sidebar */}
-        <motion.aside 
-          initial={false}
-          animate={{ width: isCollapsed ? 80 : 280 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="h-full bg-white border-r border-zinc-100 flex flex-col relative z-20 overflow-hidden"
-        >
-          {/* Header / Logo */}
-          <div className="h-20 flex items-center px-6 justify-between border-b border-zinc-50 bg-zinc-50/30">
-            <AnimatePresence mode="wait">
-              {!isCollapsed && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="flex items-center gap-3"
-                >
-                   <div className="w-9 h-9 bg-zinc-900 rounded-xl flex items-center justify-center shadow-xl shadow-zinc-900/10">
-                      <Zap className="text-white w-5 h-5 fill-current" />
-                   </div>
-                   <div className="flex flex-col">
-                      <span className="font-display font-black text-[13px] tracking-tight leading-none uppercase">Architect</span>
-                      <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Industrial Unit</span>
-                   </div>
-                </motion.div>
-              )}
-              {isCollapsed && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="w-full flex justify-center"
-                >
-                   <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm">
-                      <Zap className="text-white w-5 h-5 fill-current" />
-                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex-1 py-10 px-4 space-y-1">
-             <div className="px-3 mb-4">
-                {!isCollapsed && <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">SaaS Factory</span>}
-                {isCollapsed && <div className="h-px bg-zinc-100 my-4" />}
-             </div>
-
-            <NavItem 
-              icon={<LayoutDashboard size={18} />} 
-              label="Operaciones" 
-              active={activeView === 'dashboard'} 
-              collapsed={isCollapsed} 
-              onClick={() => {
-                setActiveView('dashboard' as any)
-                if (agents.length > 0 && !selectedAgentId) setSelectedAgentId(agents[0].id)
-              }}
-            />
-
-            {/* Sub-menú de Agentes Dinámico */}
-            {!isCollapsed && agents.length > 0 && (
-              <div className="pl-6 space-y-1 mb-4 overflow-hidden">
-                {agents.map((agent) => (
-                  <div 
-                    key={agent.id}
-                    onClick={() => {
-                      setSelectedAgentId(agent.id)
-                      setActiveView('dashboard' as any)
-                    }}
-                    className={`flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer transition-all border ${
-                      selectedAgentId === agent.id 
-                        ? 'bg-zinc-900 border-zinc-900 text-white shadow-lg' 
-                        : 'text-zinc-400 hover:bg-zinc-50 border-transparent'
-                    }`}
-                  >
-                     <div className={`w-1.5 h-1.5 rounded-full ${agent.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
-                     <span className="text-[11px] font-bold truncate uppercase tracking-tight">{agent.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <NavItem 
-              icon={<Rocket size={18} />} 
-              label="Constructor" 
-              active={activeView === 'builder'} 
-              collapsed={isCollapsed} 
-              onClick={() => setActiveView('builder' as any)}
-            />
-            <NavItem 
-              icon={<Layers size={18} />} 
-              label="Despliegues" 
-              active={activeView === 'deployments'} 
-              collapsed={isCollapsed} 
-              onClick={() => setActiveView('deployments' as any)}
-            />
-            
-            <div className="pt-8 pb-4 px-3">
-               {!isCollapsed && <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Seguridad</span>}
-               {isCollapsed && <div className="h-px bg-zinc-100 my-4" />}
-            </div>
-            
-            <NavItem 
-              icon={<Cpu size={18} />} 
-              label="Infraestructura" 
-              active={activeView === 'infrastructure'} 
-              collapsed={isCollapsed} 
-              onClick={() => setActiveView('infrastructure' as any)}
-            />
-            <NavItem 
-              icon={<Shield size={18} />} 
-              label="Seguridad Hub" 
-              active={activeView === 'security'} 
-              collapsed={isCollapsed} 
-              onClick={() => setActiveView('security' as any)}
-            />
-          </div>
-
-          <div className="p-6 border-t border-zinc-100 space-y-2">
-            <NavItem 
-              icon={<Settings size={18} />} 
-              label="Configuración" 
-              active={activeView === 'settings'} 
-              collapsed={isCollapsed} 
-              onClick={() => setActiveView('settings' as any)}
-            />
-            <button 
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-zinc-400 hover:bg-zinc-50 transition-all group"
-            >
-              {isCollapsed ? <Menu size={18} className="mx-auto" /> : <ChevronLeft size={18} className="group-hover:-translate-x-1 transition-transform" />}
-              {!isCollapsed && <span className="text-[11px] font-bold uppercase tracking-wider">Colapsar Nodo</span>}
-            </button>
-          </div>
-        </motion.aside>
-
-        <div className="flex-1 flex flex-col min-w-0 bg-[#FDFDFD]">
-          {/* GLOBAL SAAS TOP BAR v3.6 */}
-          <header className="h-20 border-b border-zinc-100 bg-white/60 backdrop-blur-xl flex items-center justify-between px-10 sticky top-0 z-30">
-            <div className="flex items-center gap-6">
-               <div className="h-10 w-[1px] bg-zinc-200 hidden sm:block" />
-               <p className="text-[11px] font-black uppercase text-zinc-400 tracking-widest leading-none">
-                 Estación: <span className="text-zinc-900">Alpha-One</span>
-               </p>
-            </div>
-
-            <div className="flex items-center gap-6">
-               {/* Centro de Notificaciones */}
-               <div className="relative cursor-pointer" onClick={() => setShowNotifications(!showNotifications)}>
-                  <div className={`p-2.5 hover:bg-zinc-100 rounded-xl transition-all relative ${showNotifications ? 'bg-zinc-100' : ''}`}>
-                     <Bell size={20} className={showNotifications ? 'text-blue-600' : 'text-zinc-400'} />
-                     <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full ring-2 ring-white animate-pulse" />
-                  </div>
-                  
-                  <AnimatePresence>
-                     {showNotifications && (
-                        <motion.div 
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute right-0 mt-3 w-80 bg-white border border-zinc-100 rounded-[32px] shadow-2xl p-6 space-y-4 z-50 origin-top-right ring-1 ring-zinc-900/5"
-                        >
-                           <div className="flex justify-between items-center border-b border-zinc-50 pb-3">
-                              <h3 className="text-[10px] font-black uppercase text-zinc-900 tracking-widest">Alertas AI</h3>
-                              <span className="text-[10px] text-blue-600 font-bold hover:underline">Limpiar</span>
-                           </div>
-                           <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar">
-                              {notifications.map(n => (
-                                 <div key={n.id} className="flex gap-4 items-start group">
-                                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-blue-500`} />
-                                    <div className="space-y-0.5">
-                                       <p className="text-[11px] font-bold text-zinc-900 leading-tight">{n.title}</p>
-                                       <p className="text-[10px] text-zinc-400 font-medium">{n.time}</p>
-                                    </div>
-                                 </div>
-                              ))}
-                           </div>
-                        </motion.div>
-                     )}
-                  </AnimatePresence>
-               </div>
-
-               <div className="h-8 w-[1px] bg-zinc-100" />
-
-               {/* Acceso a Perfil */}
-               <button 
-                  onClick={() => setActiveView('profile' as any)}
-                  className={`flex items-center gap-4 group pl-4 pr-1 py-1 rounded-2xl transition-all ${activeView === 'profile' ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
-               >
-                  <div className="text-right hidden sm:block">
-                     <p className="text-[11px] font-black uppercase text-zinc-900 tracking-tighter leading-none">Architect Senior</p>
-                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Nivel: Elite</p>
-                  </div>
-                  <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center text-white ring-2 ring-white shadow-xl shadow-zinc-900/10 group-hover:scale-105 transition-transform overflow-hidden relative">
-                     <div className="absolute inset-0 bg-blue-600 opacity-20" />
-                     <span className="relative text-[10px] font-black">SA</span>
-                  </div>
-               </button>
-            </div>
-          </header>
-
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10 no-scrollbar">
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={activeView}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.4, ease: "circOut" }}
-                className="max-w-7xl mx-auto h-full"
-              >
-                {children}
-              </motion.div>
-            </AnimatePresence>
-          </main>
+    <div className="flex h-screen bg-zinc-50 overflow-hidden font-display selection:bg-blue-100 selection:text-blue-900">
+      <motion.aside 
+        initial={false}
+        animate={{ width: isSidebarOpen ? 280 : 80 }}
+        className="bg-white border-r border-zinc-200 flex flex-col relative z-50 shadow-sm"
+      >
+        <div className="p-6 mb-4 flex items-center justify-between">
+           {isSidebarOpen && (
+             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center text-white">
+                   <Zap size={18} />
+                </div>
+                <span className="font-black text-[12px] tracking-tighter text-zinc-900 uppercase">Architect<span className="text-blue-600">.</span>Build</span>
+             </motion.div>
+           )}
+           <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400">
+              <Menu size={20} />
+           </button>
         </div>
+
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
+           <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active={activeView === 'dashboard'} onClick={() => setActiveView('dashboard')} compact={!isSidebarOpen} />
+           <NavItem icon={<Layers size={20} />} label="Constructor" active={activeView === 'builder'} onClick={() => setActiveView('builder')} compact={!isSidebarOpen} />
+           <NavItem icon={<Cpu size={20} />} label="Despliegues" active={activeView === 'deployments'} onClick={() => setActiveView('deployments')} compact={!isSidebarOpen} />
+           
+           <div className="py-6 px-4">
+              {isSidebarOpen && <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Agentes</p>}
+              <div className="space-y-2">
+                 {agents.map(agent => (
+                   <button 
+                     key={agent.id}
+                     onClick={() => { setSelectedAgentId(agent.id); setActiveView('dashboard') }}
+                     className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${selectedAgentId === agent.id ? 'bg-zinc-900 text-white shadow-lg' : 'hover:bg-zinc-100 text-zinc-500'}`}
+                   >
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${agent.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+                      {isSidebarOpen && <span className="text-[11px] font-bold truncate uppercase tracking-tight">{agent.name}</span>}
+                   </button>
+                 ))}
+              </div>
+           </div>
+        </nav>
+
+        <div className="p-4 border-t border-zinc-100 space-y-1">
+           <NavItem icon={<ShieldCheck size={20} />} label="Seguridad" active={activeView === 'security'} onClick={() => setActiveView('security')} compact={!isSidebarOpen} />
+           <NavItem icon={<Settings size={20} />} label="Ajustes" active={activeView === 'settings'} onClick={() => setActiveView('settings')} compact={!isSidebarOpen} />
+        </div>
+      </motion.aside>
+
+      <main className="flex-1 flex flex-col relative overflow-hidden">
+        <header className="h-20 bg-white border-b border-zinc-100 px-10 flex items-center justify-between sticky top-0 z-40">
+           <div className="flex items-center gap-6">
+              <p className="text-[11px] font-black uppercase text-zinc-400 tracking-widest leading-none">
+                 Estación: <span className="text-zinc-900">Alpha-One</span>
+              </p>
+           </div>
+           
+           <div className="flex items-center gap-4">
+              <button className="p-2.5 bg-zinc-100 text-zinc-500 rounded-xl hover:bg-zinc-200 transition-colors relative">
+                 <Bell size={18} />
+                 <div className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-blue-600 rounded-full" />
+              </button>
+              <button 
+                onClick={() => setActiveView('profile')}
+                className="flex items-center gap-3 pl-4 pr-1 py-1 bg-zinc-50 rounded-2xl hover:bg-zinc-100 transition-all border border-zinc-100"
+              >
+                 <span className="text-[10px] font-black text-zinc-900 uppercase tracking-tighter hidden sm:block">Architect Senior</span>
+                 <div className="w-9 h-9 bg-zinc-900 rounded-xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/10">
+                    <User size={18} />
+                 </div>
+              </button>
+           </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth p-6 sm:p-10">
+           {children}
+        </div>
+      </main>
     </div>
   )
 }
 
-function NavItem({ icon, label, active = false, collapsed = false, onClick }: { icon: any, label: string, active?: boolean, collapsed?: boolean, onClick?: () => void }) {
+function NavItem({ icon, label, active, onClick, compact }: any) {
   return (
-    <div 
+    <button 
       onClick={onClick}
-      className={`
-      sidebar-item cursor-pointer transition-all duration-200
-      ${active ? 'sidebar-item-active !bg-zinc-900 !text-white' : 'hover:bg-zinc-100'}
-      ${collapsed ? 'justify-center px-0' : ''}
-    `}>
-      <span className="shrink-0">{icon}</span>
-      {!collapsed && (
-        <motion.span 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="truncate font-bold tracking-tight text-[13px]"
-        >
-          {label}
-        </motion.span>
-      )}
-    </div>
+      className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group relative ${active ? 'bg-blue-50 text-blue-700' : 'text-zinc-400 hover:bg-zinc-50 hover:text-zinc-900'}`}
+    >
+      <div className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</div>
+      {!compact && <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>}
+      {active && <motion.div layoutId="nav-active" className="absolute left-0 w-1 h-6 bg-blue-600 rounded-r-full" />}
+    </button>
   )
 }
