@@ -290,39 +290,39 @@ function SecurityView() {
           <SecretInput 
             label="Gemini AI API Key" 
             value="AIzaSy****************************" 
-            help="El 'Cerebro' de tus agentes. Proporciona la capacidad de razonamiento y procesamiento de lenguaje."
+            help="El 'Cerebro' de tus agentes. Proporciona la capacidad de razonamiento de lenguaje."
           />
           <SecretInput 
-            label="Whapi Token (Prototipo QR)" 
-            value="********************************" 
-            help="Conexión rápida mediante emulación de dispositivo para pruebas inmediatas."
+            label="Evolution API URL" 
+            value="http://localhost:8080" 
+            help="Punto de enlace con tu Nodo Evolution (Docker/VPS)."
           />
           <SecretInput 
-            label="YCloud API Key (Coexistencia)" 
+            label="Evolution API Key" 
             value="********************************" 
-            help="Conexión oficial de Meta. Permite usar la App móvil y el Bot simultáneamente."
+            help="Clave maestra de administración de tu Nodo Evolution."
           />
         </div>
 
         <div className="glass-card bg-zinc-900 text-white p-8 space-y-8 border-none ring-1 ring-white/10 shadow-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4">
              <Zap className="text-emerald-400" size={20} />
-             <h3 className="text-sm font-bold">Meta Cloud Hub (Coste Cero)</h3>
+             <h3 className="text-sm font-bold">Motor Zero-Cost (Evolution API)</h3>
           </div>
           
           <div className="space-y-6">
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Para desplegar agentes sin costes de suscripción, utiliza la API Oficial de Meta. Las primeras 1,000 conversaciones/mes son GRATUITAS si son iniciadas por el usuario.
+              Para operar sin costes por mensaje, utiliza **Evolution API**. Conecta tu cuenta oficial de WhatsApp mediante emulación segura y mantén la sincronización total en tu móvil.
             </p>
-
+ 
             <div className="space-y-4">
-               <GuideStep number={1} label="Registro Meta Developers" text="Crea una cuenta en developers.facebook.com y activa una APP de tipo 'Business'." />
-               <GuideStep number={2} label="Configurar Webhook" text="Apunta el Webhook de Meta a la URL de tu despliegue de Architect Build." />
-               <GuideStep number={3} label="Obtener Token Perpetuo" text="Genera un 'System User Token' con permisos 'whatsapp_business_messaging'." />
+               <GuideStep number={1} label="Desplegar Nodo Evolution" text="Instala la instancia en tu servidor o VPS mediante Docker Compose." />
+               <GuideStep number={2} label="Configurar Webhook" text="Apunta los eventos de Evolution a la URL de tu API de Architect Build." />
+               <GuideStep number={3} label="Vincular Cuenta via QR" text="Escanea el código QR desde el Constructor de Agentes para activar el servicio." />
             </div>
-
+ 
             <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20">
-               Descargar Guía de Configuración Meta (PDF)
+               Descargar Manual de Despliegue (PDF)
             </button>
           </div>
         </div>
