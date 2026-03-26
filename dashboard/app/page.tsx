@@ -163,18 +163,18 @@ function LoginShield({ onAuthorize }: { onAuthorize: () => void }) {
 }
 
 function ViewSelector({ status, githubRuns, vaultFiles }: any) {
-  const { activeView, setActiveView } = useView()
+  const { activeView, setActiveView, selectedAgentId } = useView()
   
   switch (activeView) {
-    case 'dashboard': return <DashboardView status={status} vaultFiles={vaultFiles} />
+    case 'dashboard': return <DashboardView status={status} agents={vaultFiles} selectedId={selectedAgentId} />
     case 'builder': return <AgentCreator />
     case 'vault': return <ConfigVault files={vaultFiles} />
-    case 'deployments': return <DeploymentsView runs={githubRuns} />
+    case 'deployments': return <DeploymentsView agents={vaultFiles} />
     case 'infrastructure': return <InfrastructureView status={status} />
     case 'security': return <SecurityView />
     case 'profile': return <ProfileView vaultFiles={vaultFiles} />
     case 'settings': return <SettingsModal isOpen={true} onClose={() => setActiveView('dashboard')} />
-    default: return <DashboardView status={status} vaultFiles={vaultFiles} />
+    default: return <DashboardView status={status} agents={vaultFiles} selectedId={selectedAgentId} />
   }
 }
 
@@ -182,53 +182,86 @@ function ViewSelector({ status, githubRuns, vaultFiles }: any) {
 /* VIEWS COMPONENTIZADAS                                                     */
 /* -------------------------------------------------------------------------- */
 
-function DeploymentsView({ runs = [] }: { runs?: any[] }) {
+function DeploymentsView({ agents = [] }: { agents: any[] }) {
+  const [activeModalAgent, setActiveModalAgent] = useState<any>(null)
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center px-1">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-zinc-900 tracking-tight">GitHub Deployments</h2>
-          <p className="text-xs text-zinc-400 font-medium">Historial de compilaciones y orquestación de la nube.</p>
+          <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Centro de Despliegues</h2>
+          <p className="text-xs text-zinc-400 font-medium uppercase tracking-widest">Gestión de Instancias y Conectividad WhatsApp</p>
         </div>
-        <button className="nuclear-button !bg-zinc-900 !px-6">Re-deploy All</button>
+        <button className="nuclear-button !bg-zinc-900 !px-6">Status Global</button>
       </div>
       
       <div className="glass-card bg-white divide-y divide-zinc-100 overflow-hidden">
-        {runs.length === 0 ? (
+        {agents.length === 0 ? (
           <div className="p-20 text-center space-y-4">
             <Layers size={40} className="text-zinc-200 mx-auto" />
-            <p className="text-sm font-medium text-zinc-400 italic">No se han detectado ejecuciones activas en GitHub Actions.</p>
+            <p className="text-sm font-medium text-zinc-400 italic">No hay agentes registrados en la base de datos.</p>
           </div>
         ) : (
-          runs.map((d) => (
-            <div key={d.id} className="p-5 flex items-center justify-between hover:bg-zinc-50 transition-colors cursor-pointer group">
-              <div className="flex items-center gap-4">
-                <div className={`p-2.5 rounded-xl border ${
-                  d.status === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-                  d.status === 'running' ? 'bg-blue-50 border-blue-100 text-blue-600' :
-                  'bg-red-50 border-red-100 text-red-600'
+          agents.map((agent) => (
+            <div key={agent.id} className="p-6 flex items-center justify-between hover:bg-zinc-50 transition-colors group">
+              <div className="flex items-center gap-6">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                  agent.status === 'active' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-zinc-50 border-zinc-100 text-zinc-400'
                 }`}>
-                  <Layers size={18} className={d.status === 'running' ? 'animate-spin' : ''} />
+                  <Zap size={20} className={agent.status === 'active' ? 'fill-current' : ''} />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-zinc-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{d.name}</h4>
-                  <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{d.id} • {d.author}</p>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-zinc-900 uppercase tracking-tight">{agent.name}</h4>
+                  <div className="flex items-center gap-3">
+                     <span className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{agent.connection_type}</span>
+                     <div className="w-1 h-1 bg-zinc-200 rounded-full" />
+                     <span className="text-[10px] text-zinc-400 font-medium">{agent.website_url || 'Sin URL'}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-8">
-                <span className="text-[11px] font-bold text-zinc-400 tabular-nums">{d.time}</span>
-                <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
-                  d.status === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 
-                  d.status === 'running' ? 'bg-blue-50 border-blue-100 text-blue-600 animate-pulse' :
-                  'bg-red-50 border-red-100 text-red-600'
-                }`}>
-                  {d.status}
-                </div>
+              
+              <div className="flex items-center gap-4">
+                 <button 
+                   onClick={() => setActiveModalAgent(agent)}
+                   className="px-6 py-2.5 bg-zinc-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-zinc-900/10 hover:scale-105 transition-transform"
+                 >
+                    Conectar WhatsApp
+                 </button>
+                 <div className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border ${
+                   agent.status === 'active' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-zinc-100 border-zinc-200 text-zinc-400'
+                 }`}>
+                   {agent.status}
+                 </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      <AnimatePresence>
+        {activeModalAgent && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-md">
+             <motion.div 
+               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+               className="relative w-full max-w-lg"
+             >
+                <button 
+                  onClick={() => setActiveModalAgent(null)}
+                  className="absolute -top-12 right-0 text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:opacity-70 transition-opacity"
+                >
+                   Cerrar <Plus className="rotate-45" size={20} />
+                </button>
+                <EvolutionBridge 
+                  instanceName={activeModalAgent.name.toLowerCase().replace(/\s+/g, '_')} 
+                  onConnected={() => {
+                    console.log("Conectado con éxito")
+                    setTimeout(() => setActiveModalAgent(null), 3000)
+                  }} 
+                />
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -368,19 +401,45 @@ function SecretInput({ label, value, help }: any) {
   )
 }
 
-function DashboardView({ status, vaultFiles = [] }: any) {
-  const { setActiveView } = useView()
+function DashboardView({ status, agents = [], selectedId }: { status: any, agents: any[], selectedId: string | null }) {
+  const { setActiveView, setSelectedAgentId } = useView()
   const isOnline = status?.status === 'online'
-  const agents = vaultFiles.filter((f: any) => f.name.endsWith('.yaml'))
-  const agentCount = agents.length
   const { developerMode } = useSettings()
   const [currentTime, setCurrentTime] = useState('')
+
+  const selectedAgent = agents.find(a => a.id === selectedId)
 
   useEffect(() => {
     setCurrentTime(new Date().toLocaleTimeString())
     const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000)
     return () => clearInterval(timer)
   }, [])
+
+  if (!selectedId || !selectedAgent) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-700">
+         <div className="w-24 h-24 bg-zinc-50 rounded-[40px] flex items-center justify-center border border-zinc-100 shadow-inner">
+            <Zap size={40} className="text-zinc-200" />
+         </div>
+         <div className="text-center space-y-3">
+            <h2 className="text-2xl font-black text-zinc-900 tracking-tighter">Terminal de Operaciones</h2>
+            <p className="text-sm text-zinc-400 font-medium max-w-xs leading-relaxed uppercase tracking-widest text-[10px] font-black">
+               Selecciona un agente desde el menú lateral para iniciar la monitorización industrial.
+            </p>
+         </div>
+         <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+            <button onClick={() => setActiveView('builder')} className="p-4 border border-zinc-100 rounded-2xl hover:bg-zinc-50 transition-all text-left group">
+               <Plus size={16} className="text-zinc-400 mb-2 group-hover:text-blue-600" />
+               <p className="text-[10px] font-black uppercase text-zinc-900">Crear Nuevo</p>
+            </button>
+            <button onClick={() => setActiveView('deployments')} className="p-4 border border-zinc-100 rounded-2xl hover:bg-zinc-50 transition-all text-left group">
+               <Layers size={16} className="text-zinc-400 mb-2 group-hover:text-blue-600" />
+               <p className="text-[10px] font-black uppercase text-zinc-900">Configurar Nodo</p>
+            </button>
+         </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700">
@@ -394,71 +453,92 @@ function DashboardView({ status, vaultFiles = [] }: any) {
             className="fixed bottom-10 right-10 w-96 bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl z-50 font-mono text-[10px]"
           >
              <div className="flex justify-between items-center border-b border-white/5 pb-3 mb-4">
-                <span className="text-blue-400 font-black">LOGS DE SISTEMA (DEV_MODE)</span>
+                <span className="text-blue-400 font-black">AGENTE: {selectedAgent.name.toUpperCase()}</span>
                 <div className="flex gap-1">
                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
                 </div>
              </div>
              <div className="space-y-2 text-zinc-400">
-                <p><span className="text-zinc-600">[{currentTime}]</span> API_STATUS: {isOnline ? 'ONLINE' : 'OFFLINE'}</p>
-                <p><span className="text-zinc-600">[{currentTime}]</span> VAULT_SYNC: {agentCount} AGENTS_LOADED</p>
-                <p><span className="text-zinc-600">[{currentTime}]</span> SESSION: VALIDATED_ARCHITECT</p>
-                <p className="text-emerald-500 tracking-tighter animate-pulse">{">>>"} ESCUCHANDO EVENTOS DE META_HUB...</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> INSTANCE_ID: {selectedId.substring(0,8)}</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> STATUS: {selectedAgent.status.toUpperCase()}</p>
+                <p><span className="text-zinc-600">[{currentTime}]</span> ENGINE: GEMINI_1.5_PRO</p>
+                <p className="text-emerald-500 tracking-tighter animate-pulse">{">>>"} ESCUCHANDO TRÁFICO DE {selectedAgent.connection_type}...</p>
              </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Power Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <PowerStat label="Operaciones IA" value={agentCount > 0 ? (agentCount * 124).toString() : "0"} delta={agentCount > 0 ? "Real-time" : "---"} color="blue" icon={<Zap size={20} />} />
-        <PowerStat label="Latencia Promedio" value={isOnline ? "342ms" : "---"} delta={isOnline ? "Stable" : "N/A"} color="emerald" icon={<Cpu size={20} />} />
-        <PowerStat label="Agentes Desplegados" value={agentCount.toString()} delta={agentCount > 0 ? "Cloud Activo" : "Waiting"} color="blue" icon={<Layers size={20} />} />
-        <PowerStat label="Estado de Red" value={isOnline ? "Online" : "Offline"} delta={isOnline ? "Secure" : "Check Local"} color="indigo" icon={<Database size={20} />} />
+      <div className="flex justify-between items-end px-1">
+         <div className="space-y-2">
+            <div className="flex items-center gap-3">
+               <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center text-white shadow-xl shadow-zinc-900/10">
+                  <Cpu size={20} />
+               </div>
+               <div>
+                  <h1 className="text-2xl font-black text-zinc-900 tracking-tighter">{selectedAgent.name}</h1>
+                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em]">Monitor de Rendimiento en Vivo</p>
+               </div>
+            </div>
+         </div>
+         <div className="flex items-center gap-4">
+            <div className={`px-4 py-2 rounded-full border flex items-center gap-2 ${selectedAgent.status === 'active' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-zinc-100 border-zinc-200 text-zinc-400'}`}>
+               <div className={`w-2 h-2 rounded-full ${selectedAgent.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-zinc-400'}`} />
+               <span className="text-[10px] font-black uppercase tracking-widest">{selectedAgent.status}</span>
+            </div>
+         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Línea de Producción Aktiva</h2>
-          <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
-             <Activity size={12} className={isOnline ? "animate-pulse text-blue-500" : "text-zinc-300"} />
-             FEED EN TIEMPO REAL
-          </div>
-        </div>
+      {/* Power Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <PowerStat label="Conversaciones" value={selectedAgent.status === 'active' ? "1,240" : "0"} delta="Real-time" color="blue" icon={<Zap size={20} />} />
+        <PowerStat label="Latencia" value={isOnline ? "342ms" : "---"} delta="Stable" color="emerald" icon={<Cpu size={20} />} />
+        <PowerStat label="Efectividad IA" value="98.4%" delta="Optimizado" color="blue" icon={<Activity size={20} />} />
+        <PowerStat label="Estado Canal" value={selectedAgent.connection_type} delta="Secure" color="indigo" icon={<Database size={20} />} />
+      </div>
 
-        {agentCount === 0 && (
-          <div className="p-20 bg-white border border-dashed border-zinc-200 rounded-[48px] text-center space-y-8 shadow-sm">
-             <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mx-auto border border-zinc-100 italic font-black text-zinc-300">
-                0
-             </div>
-             <div className="space-y-2">
-                <h3 className="text-xl font-bold text-zinc-900 tracking-tight">Fábrica en Reposo</h3>
-                <p className="text-sm text-zinc-400 font-medium max-w-sm mx-auto leading-relaxed">
-                   Aún no has inyectado vida en este nodo. Inicia el protocolo de creación para desplegar tu primer agente autónomo.
-                </p>
-             </div>
-             <button 
-               onClick={() => setActiveView('builder')}
-               className="nuclear-button !bg-zinc-900 !px-10 py-5"
-             >
-                Iniciar Protocolo de Vida
-             </button>
-          </div>
-        )}
-
-        {agentCount > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {agents.map((agent: any, i: number) => (
-              <AgentStatusCard 
-                key={i}
-                name={agent.name.replace('.yaml', '').replace(/_/g, ' ').toUpperCase()} 
-                status="running" 
-                type="Agente Autónomo" 
-              />
-            ))}
-          </div>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+         <div className="lg:col-span-2 space-y-6">
+            <div className="glass-card p-10 bg-zinc-900 text-white min-h-[400px] border-none shadow-2xl relative overflow-hidden ring-1 ring-white/10">
+               <div className="flex items-center justify-between border-b border-white/10 pb-6">
+                  <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                     <Activity size={16} className="text-blue-500" /> Registro de Actividad
+                  </h3>
+                  <div className="flex gap-2">
+                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                     <span className="text-[10px] font-bold text-zinc-500">Node_Stream: Activo</span>
+                  </div>
+               </div>
+               <div className="py-10 text-center space-y-4 opacity-30">
+                  <Database size={40} className="mx-auto" />
+                  <p className="text-xs font-mono uppercase tracking-[0.2em]">Esperando interacciones de WhatsApp...</p>
+               </div>
+               {/* Decorative Gradient */}
+               <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[100px] -z-10" />
+            </div>
+         </div>
+         
+         <div className="space-y-6">
+            <div className="glass-card p-8 bg-white space-y-6">
+               <h3 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Configuración del Cerebro</h3>
+               <div className="space-y-4">
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Modelo de Inferencia</p>
+                     <p className="text-xs font-bold text-zinc-900">Gemini 1.5 Pro (Industrial)</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Tipo de Memoria</p>
+                     <p className="text-xs font-bold text-zinc-900">PostgreSQL Vector (Supabase)</p>
+                  </div>
+                  <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
+                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Frecuencia de Sync</p>
+                     <p className="text-xs font-bold text-zinc-900">Tiempo Real (Webhooks)</p>
+                  </div>
+               </div>
+               <button className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-transform">
+                  Ver Dossier Técnico
+               </button>
+            </div>
+         </div>
       </div>
     </div>
   )

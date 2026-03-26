@@ -16,6 +16,8 @@ interface SettingsContextType {
 interface ViewContextType {
   activeView: ViewType
   setActiveView: (view: ViewType) => void
+  selectedAgentId: string | null
+  setSelectedAgentId: (id: string | null) => void
 }
 
 const ViewContext = createContext<ViewContextType | undefined>(undefined)
@@ -23,6 +25,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function ViewProvider({ children }: { children: React.ReactNode }) {
   const [activeView, setActiveView] = useState<ViewType>('dashboard')
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   
   // Settings State
   const [salesNotifications, setSalesNotifications] = useState(true)
@@ -31,6 +34,8 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
 
   // Cargar preferencias
   useEffect(() => {
+    const savedId = localStorage.getItem('ARCHITECT_SELECTED_AGENT')
+    if (savedId) setSelectedAgentId(savedId)
     const saved = localStorage.getItem('ARCHITECT_SETTINGS')
     if (saved) {
       try {
@@ -50,6 +55,14 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
   }, [salesNotifications, developerMode, autoCloudSync])
 
   useEffect(() => {
+    if (selectedAgentId) {
+      localStorage.setItem('ARCHITECT_SELECTED_AGENT', selectedAgentId)
+    } else {
+      localStorage.removeItem('ARCHITECT_SELECTED_AGENT')
+    }
+  }, [selectedAgentId])
+
+  useEffect(() => {
     const handleViewChange = (e: any) => {
       if (e.detail) setActiveView(e.detail as ViewType)
     }
@@ -58,7 +71,12 @@ export function ViewProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <ViewContext.Provider value={{ activeView, setActiveView }}>
+    <ViewContext.Provider value={{ 
+      activeView, 
+      setActiveView, 
+      selectedAgentId, 
+      setSelectedAgentId 
+    }}>
       <SettingsContext.Provider value={{ 
         salesNotifications, setSalesNotifications,
         developerMode, setDeveloperMode,

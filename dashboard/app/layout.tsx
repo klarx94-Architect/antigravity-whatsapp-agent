@@ -27,6 +27,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
 import { ViewProvider, useView } from './context'
+import { supabase } from './supabase'
 
 export default function RootLayout({
   children,
@@ -46,11 +47,22 @@ export default function RootLayout({
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { activeView, setActiveView } = useView()
+  const { activeView, setActiveView, selectedAgentId, setSelectedAgentId } = useView()
+  const [agents, setAgents] = useState<any[]>([])
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications] = useState([
     { id: 1, title: 'Estación de Control Alpha Activa', time: 'Ahora', type: 'success' }
   ])
+
+  useEffect(() => {
+    async function loadAgents() {
+      const { data } = await supabase.from('agents').select('*').order('name')
+      if (data) setAgents(data)
+    }
+    loadAgents()
+    const interval = setInterval(loadAgents, 10000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
     <div className="flex h-screen bg-[#FDFDFD] text-[#09090B] font-sans">
@@ -106,8 +118,34 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               label="Operaciones" 
               active={activeView === 'dashboard'} 
               collapsed={isCollapsed} 
-              onClick={() => setActiveView('dashboard' as any)}
+              onClick={() => {
+                setActiveView('dashboard' as any)
+                if (agents.length > 0 && !selectedAgentId) setSelectedAgentId(agents[0].id)
+              }}
             />
+
+            {/* Sub-menú de Agentes Dinámico */}
+            {!isCollapsed && agents.length > 0 && (
+              <div className="pl-6 space-y-1 mb-4 overflow-hidden">
+                {agents.map((agent) => (
+                  <div 
+                    key={agent.id}
+                    onClick={() => {
+                      setSelectedAgentId(agent.id)
+                      setActiveView('dashboard' as any)
+                    }}
+                    className={`flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer transition-all border ${
+                      selectedAgentId === agent.id 
+                        ? 'bg-zinc-900 border-zinc-900 text-white shadow-lg' 
+                        : 'text-zinc-400 hover:bg-zinc-50 border-transparent'
+                    }`}
+                  >
+                     <div className={`w-1.5 h-1.5 rounded-full ${agent.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+                     <span className="text-[11px] font-bold truncate uppercase tracking-tight">{agent.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <NavItem 
               icon={<Rocket size={18} />} 
               label="Constructor" 
