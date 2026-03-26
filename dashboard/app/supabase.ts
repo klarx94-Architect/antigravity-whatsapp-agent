@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// CREDENCIALES DE PRODUCCIÓN (v4.4.0)
+const supabaseUrl = 'https://kfxzwrjahqdexakwozja.supabase.co';
+const supabaseKey = 'sb_publishable_raQTCnCzW19NSOgyX10Byg_H2TUYZGB';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function getAgents() {
   const { data, error } = await supabase
@@ -38,7 +39,7 @@ export async function generateApiKey(agentId: string) {
     .from('credentials')
     .insert([{
         key_name: `Key for Agent ${agentId}`,
-        api_key_hash: rawKey, // En producción real deberíamos hashear esto con SHA-256
+        api_key_hash: rawKey,
         is_active: true
     }])
     .select();
@@ -48,7 +49,6 @@ export async function generateApiKey(agentId: string) {
     return null;
   }
   
-  // Actualizar el agente con el ID de la credencial
   await supabase
     .from('agents')
     .update({ api_key_id: data[0].id })

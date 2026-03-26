@@ -12,15 +12,17 @@ export function EvolutionBridge({ instanceName, onConnected }: { instanceName: s
   const fetchQR = async () => {
     try {
       setStatus('loading')
+      const ENGINE_URL = 'https://evolution-motor-vora-production.up.railway.app'
+      
       // 1. Crear instancia
-      const createRes = await fetch('http://localhost:8000/api/evolution/create', {
+      const createRes = await fetch(`${ENGINE_URL}/api/evolution/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: instanceName })
       })
       
       // 2. Obtener QR
-      const qrRes = await fetch(`http://localhost:8000/api/evolution/qr/${instanceName}`)
+      const qrRes = await fetch(`${ENGINE_URL}/api/evolution/qr/${instanceName}`)
       const data = await qrRes.json()
       
       if (data.code || data.base64) {
@@ -38,9 +40,10 @@ export function EvolutionBridge({ instanceName, onConnected }: { instanceName: s
 
   useEffect(() => {
     fetchQR()
+    const ENGINE_URL = 'https://evolution-motor-vora-production.up.railway.app'
     const interval = setInterval(async () => {
       if (status === 'qr') {
-        const res = await fetch(`http://localhost:8000/api/evolution/instances`)
+        const res = await fetch(`${ENGINE_URL}/api/evolution/instances`)
         const instances = await res.json()
         const current = instances.find((i: any) => i.instanceName === instanceName)
         if (current?.status === 'open') {

@@ -1,4 +1,4 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "https://evolution-motor-vora-production.up.railway.app"
 
 export async function getApiStatus() {
   try {
