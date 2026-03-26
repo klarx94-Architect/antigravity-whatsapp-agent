@@ -1247,7 +1247,7 @@ function FileRow({ name, type, size, date }: any) {
         </div>
         <div className="space-y-0.5">
           <h4 className="text-sm font-bold text-zinc-700">{name}</h4>
-          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{type} • {size}</p>
+                    <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{type} • {size}</p>
         </div>
       </div>
       <div className="flex items-center gap-6">
